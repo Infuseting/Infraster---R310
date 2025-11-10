@@ -91,7 +91,7 @@ export default function UserMenu({ name }: { name?: string }) {
           className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Avatar>
-            <AvatarFallback>{initial}</AvatarFallback>
+            <AvatarFallback className="bg-purple-600 text-white">{initial}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
