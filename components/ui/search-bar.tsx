@@ -262,7 +262,7 @@ export default function SearchBar() {
 
   return (
     <div
-      className="fixed top-4 left-24 z-9998"
+      className={`fixed ${searchResults.length > 0 || loadingResults ? 'left-16 ' : 'top-4 left-24'} z-9998`}
       // allow the container to receive focus/blur events from its children
       tabIndex={-1}
       onFocus={() => setFocused(true)}
@@ -274,7 +274,7 @@ export default function SearchBar() {
       }}
     >
       <div className="relative">
-        <div className={`flex items-center flex-col bg-white  rounded-2xl shadow-md border px-5 py-3 w-[min(320px,56vw)]`} >
+        <div className={`flex items-center flex-col bg-white ${searchResults.length > 0 || loadingResults ? 'rounded-r-2xl' : 'rounded-2xl'} shadow-md border  px-5 py-3 w-[min(320px,56vw)]`} >
           <div className="flex flex-row w-full">
             <input
               aria-label="Recherche"
@@ -297,17 +297,16 @@ export default function SearchBar() {
             <Search className="w-5 h-5 text-gray-500 ml-2 "/>
           </div>
           <div className="">
-            {focused && (recentSearches.length > 0 || suggestions.length > 0 || searchResults.length > 0) && (
+            {((searchResults.length > 0 || loadingResults) || (focused && (recentSearches.length > 0 || suggestions.length > 0))) && (
               <div
                 tabIndex={0}
-                className="left-0 top-full w-[min(320px,56vw)] text-sm overflow-hidden bg-white mt-2 rounded-lg"
+                className="left-0 top-full w-[min(320px,56vw)] text-sm overflow-hidden bg-white mt-2 rounded-lg max-h-[calc(100vh-2em-24px)] "
               >
                 <div className="p-2">
                   {loadingResults ? (
                     <div className="p-3 text-sm text-gray-500">Recherche...</div>
                   ) : searchResults && searchResults.length > 0 ? (
-                    // full result list (up to 100) - scrollable
-                    <div className="max-h-[60vh] overflow-y-auto">
+                    <div className="max-h-screen overflow-y-auto pb-[calc(2em+24px)]">
                       {searchResults.slice(0, 100).map((item: any, idx: number) => (
                         <button
                           key={idx}
@@ -336,6 +335,9 @@ export default function SearchBar() {
                           </div>
                         </button>
                       ))}
+                      {searchResults.length == 100 && (
+                        <div className="border-t border-gray-100 text-center py-4 text-sm text-blue-600">Plus de 100 résultats. Affinez votre recherche.</div>
+                      )}
                     </div>
                   ) : q && q.trim().length > 0 ? (
                     // when user typed at least one character, show inline suggestions (infra + nominatim)
@@ -382,18 +384,28 @@ export default function SearchBar() {
                           <button
                             key={idx}
                             onClick={() => {
-                              // If the history item has coordinates, pan directly. Otherwise perform a search.
-                              if (item.lat != null && item.lon != null) {
-                                // ensure shape similar to nominatim/infra result for dispatchPanTo
-                                const histItem = { lat: item.lat, lon: item.lon, source: item.type === 'infra' ? 'infra' : 'nominatim', display_name: item.title, name: item.title, adresse: item.subtitle }
-                                dispatchPanTo(histItem)
-                                setQ('')
-                                setFocused(false)
-                                return
-                              }
-                              setQ(item.title)
-                              doSearch(item.title)
-                            }}
+                                // If the history item has coordinates, pan directly.
+                                if (item.lat != null && item.lon != null) {
+                                  // ensure shape similar to nominatim/infra result for dispatchPanTo
+                                  const histItem = { lat: item.lat, lon: item.lon, source: item.type === 'infra' ? 'infra' : 'nominatim', display_name: item.title, name: item.title, adresse: item.subtitle }
+                                  dispatchPanTo(histItem)
+                                  setQ('')
+                                  setFocused(false)
+                                  return
+                                }
+
+                                // If this history entry is a saved "search" (a previous full query),
+                                // write it into the input and perform a full search to show results.
+                                if (item.type === 'search') {
+                                  setQ(item.title)
+                                  performFullSearch(item.title)
+                                  return
+                                }
+
+                                // Otherwise treat it as a generic address/title and run the quick search
+                                setQ(item.title)
+                                doSearch(item.title)
+                              }}
                             className="w-full text-left"
                           >
                             <div className="flex items-center gap-3 py-2 px-2 hover:bg-gray-50 rounded">
