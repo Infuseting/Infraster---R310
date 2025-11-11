@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Search } from "lucide-react";
+import { set } from "react-hook-form";
 
 export default function SearchBar() {
   const [q, setQ] = React.useState("");
@@ -10,6 +11,28 @@ export default function SearchBar() {
   const [recentSearches, setRecentSearches] = React.useState<Array<any>>([]);
   const [suggestions, setSuggestions] = React.useState<Array<any>>([])
   const [loadingSuggestions, setLoadingSuggestions] = React.useState(false)
+  const [searchResults, setSearchResults] = React.useState<Array<any>>([])
+  const [loadingResults, setLoadingResults] = React.useState(false)
+
+  // Helper to build a short subtitle from Nominatim address details (city / county / state / postcode)
+  function buildSubtitleFromNominatim(item: any) {
+    try {
+      const addr = item.address || {}
+      const parts: string[] = []
+      // prefer city-like fields
+      const city = addr.city || addr.town || addr.village || addr.hamlet
+      if (city) parts.push(city)
+      // county / département
+      if (addr.county) parts.push(addr.county)
+      // state (region)
+      if (addr.state) parts.push(addr.state)
+      // postcode
+      if (addr.postcode && !parts.includes(addr.postcode)) parts.push(addr.postcode)
+      return parts.join(', ')
+    } catch (e) {
+      return ''
+    }
+  }
 
   React.useEffect(() => {
     try {
@@ -44,7 +67,7 @@ export default function SearchBar() {
 
         const nomPromise = fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryText)}&format=jsonv2&addressdetails=1&limit=6`, { signal: controller.signal, headers: { 'Accept-Language': 'fr' } })
           .then((r) => (r.ok ? r.json() : []))
-          .then((arr: any[]) => arr.map((it) => ({ ...it, source: 'nominatim' })))
+          .then((arr: any[]) => (arr || []).map((it) => ({ ...it, source: 'nominatim', subtitle: buildSubtitleFromNominatim(it) })))
           .catch((e) => { if ((e as any).name === 'AbortError') throw e; console.warn('nominatim failed', e); return [] })
 
         const [infraRes, nomRes] = await Promise.all([infraPromise, nomPromise])
@@ -158,6 +181,50 @@ export default function SearchBar() {
     })()
   }
 
+  // Perform a full search (infra + nominatim) and show up to 100 results in the dropdown
+  async function performFullSearch(term?: string) {
+    const value = (term ?? q)?.trim()
+    if (!value) return
+    // Record this user-initiated search in history as a distinct type 'search'.
+    // This lets the UI show a recent query even if the user doesn't pick a result.
+    try {
+      addToHistory({ title: value, subtitle: 'Recherche', icon: '🔎', type: 'search' })
+    } catch (e) {
+      console.warn('failed to add search to history', e)
+    }
+    setLoadingResults(true)
+    try {
+      const infraPromise = fetch(`/api/search?q=${encodeURIComponent(value)}&limit=100`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((arr: any[]) => (arr || []).map((it) => ({ ...it, source: 'infra' })))
+        .catch((e) => { console.warn('infra search failed', e); return [] })
+
+      const nomPromise = fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=jsonv2&addressdetails=1&limit=100`, { headers: { 'Accept-Language': 'fr' } })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((arr: any[]) => (arr || []).map((it) => ({ ...it, source: 'nominatim', subtitle: buildSubtitleFromNominatim(it) })))
+        .catch((e) => { console.warn('nominatim failed', e); return [] })
+
+      const [infraRes, nomRes] = await Promise.all([infraPromise, nomPromise])
+
+      // dedupe: prefer infra names; compare normalized (trim+lower)
+      const infraNames = new Set((infraRes || []).map((i: any) => ((i.name || '') + '').trim().toLowerCase()))
+      const filteredNom = (nomRes || []).filter((n: any) => {
+        const dn = ((n.display_name || '') + '').trim().toLowerCase()
+        return !infraNames.has(dn)
+      })
+
+      const merged = [...(infraRes || []), ...(filteredNom || [])].slice(0, 100)
+      setSearchResults(merged)
+      // ensure the dropdown is shown
+      setFocused(true)
+    } catch (e) {
+      console.warn('performFullSearch error', e)
+      setSearchResults([])
+    } finally {
+      setLoadingResults(false)
+    }
+  }
+
   function dispatchPanTo(item: any) {
     // item can be from nominatim (display_name, lat, lon) or infra (name, adresse, lat, lon)
     const lat = parseFloat(item.lat)
@@ -167,12 +234,31 @@ export default function SearchBar() {
 
       // Choose a sensible title/subtitle for history depending on source
       if (item.source === 'infra') {
-        addToHistory({ title: item.name || `${lat}, ${lng}`, subtitle: item.adresse ?? '', type: 'infra', lat, lon: lng })
+        addToHistory({ icon: "🏢", title: item.name || `${lat}, ${lng}`, subtitle: item.adresse ?? '', type: 'infra', lat, lon: lng })
       } else {
-        addToHistory({ title: item.display_name || `${lat}, ${lng}`, subtitle: item.type ?? '', type: 'address', lat, lon: lng })
+        addToHistory({ icon: "📍", title: item.display_name || `${lat}, ${lng}`, subtitle: item.subtitle ?? item.type ?? '', type: 'address', lat, lon: lng })
       }
     }
   }
+
+  // Listen for left-panel recent-search clicks and perform the search
+  React.useEffect(() => {
+    function onRecentSearch(ev: Event) {
+      try {
+        const e = ev as CustomEvent
+        const qv = e?.detail?.q
+        if (!qv) return
+        setQ(qv)
+        // perform full search for this query
+        performFullSearch(qv)
+      } catch (err) {
+        console.warn('failed to handle infraster:searchQuery', err)
+      }
+    }
+
+    window.addEventListener('infraster:searchQuery', onRecentSearch as EventListener)
+    return () => window.removeEventListener('infraster:searchQuery', onRecentSearch as EventListener)
+  }, [performFullSearch])
 
   return (
     <div
@@ -195,56 +281,100 @@ export default function SearchBar() {
               className="flex-1 outline-none text-sm text-gray-700 bg-transparent"
               placeholder="Rechercher dans GeoShare"
               value={q}
-              onChange={(e) => setQ(e.target.value)}
+              onChange={(e) => {
+                // when the user edits the input, switch back to suggestion mode
+                setQ(e.target.value)
+                setSearchResults([])
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  doSearch();
+                  // perform the full search and display up to 100 mixed results
+                  performFullSearch();
                 }
               }}
             />
             <Search className="w-5 h-5 text-gray-500 ml-2 "/>
           </div>
           <div className="">
-            {focused && (recentSearches.length > 0 || suggestions.length > 0) && (
+            {focused && (recentSearches.length > 0 || suggestions.length > 0 || searchResults.length > 0) && (
               <div
                 tabIndex={0}
                 className="left-0 top-full w-[min(320px,56vw)] text-sm overflow-hidden bg-white mt-2 rounded-lg"
               >
                 <div className="p-2">
-                  {loadingSuggestions ? (
+                  {loadingResults ? (
                     <div className="p-3 text-sm text-gray-500">Recherche...</div>
-                  ) : suggestions && suggestions.length > 0 ? (
-                    suggestions.slice(0, 6).map((item: any, idx: number) => (
-                      <button
-                        key={idx}
-                        onClick={() => {
-                          // perform the pan/zoom then clear the input
-                          dispatchPanTo(item)
-                          setQ('')
-                          setFocused(false)
-                        }}
-                        className="w-full text-left "
-                      >
-                        <div className="flex items-center gap-3 py-2 px-2 hover:bg-gray-50 max-w-full w-full rounded">
-                          <div className={`min-w-8 min-h-8 rounded-full flex items-center justify-center text-gray-600 bg-gray-100`}>
-                            {item.source === 'infra' ? '🏢' : '📍'}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            {/* name / display as primary */}
-                              <div className="font-medium text-sm truncate">
-                              {item.source === 'infra' ? item.name : item.display_name}
+                  ) : searchResults && searchResults.length > 0 ? (
+                    // full result list (up to 100) - scrollable
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      {searchResults.slice(0, 100).map((item: any, idx: number) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            dispatchPanTo(item)
+                            setQ('')
+                            setFocused(false)
+                            setSearchResults([])
+                          }}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-center gap-3 py-2 px-2 hover:bg-gray-50 max-w-full w-full rounded">
+                            <div className={`min-w-8 min-h-8 rounded-full flex items-center justify-center text-gray-600 bg-gray-100`}>
+                              {item.source === 'infra' ? '🏢' : '📍'}
                             </div>
-                            {/* address / type as secondary */}
-                            {item.source === 'infra' ? (
-                              <div className="text-xs text-gray-500 truncate">{item.adresse}</div>
-                            ) : (
-                              item.type ? <div className="text-xs text-gray-500 truncate">{item.type}</div> : null
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm truncate">
+                                {item.source === 'infra' ? item.name : item.display_name}
+                              </div>
+                                {item.source === 'infra' ? (
+                                  <div className="text-xs text-gray-500 truncate">{item.adresse}</div>
+                                ) : (
+                                  item.subtitle ? <div className="text-xs text-gray-500 truncate">{item.subtitle}</div> : (item.type ? <div className="text-xs text-gray-500 truncate">{item.type}</div> : null)
+                                )}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    ))
+                        </button>
+                      ))}
+                    </div>
+                  ) : q && q.trim().length > 0 ? (
+                    // when user typed at least one character, show inline suggestions (infra + nominatim)
+                    loadingSuggestions ? (
+                      <div className="p-3 text-sm text-gray-500">Recherche...</div>
+                    ) : suggestions && suggestions.length > 0 ? (
+                      <div>
+                        {suggestions.slice(0, 6).map((item: any, idx: number) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              dispatchPanTo(item)
+                              setQ('')
+                              setFocused(false)
+                              setSearchResults([])
+                            }}
+                            className="w-full text-left"
+                          >
+                            <div className="flex items-center gap-3 py-2 px-2 hover:bg-gray-50 max-w-full w-full rounded">
+                              <div className={`min-w-8 min-h-8 rounded-full flex items-center justify-center text-gray-600 bg-gray-100`}>
+                                {item.source === 'infra' ? '🏢' : '📍'}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-sm truncate">
+                                  {item.source === 'infra' ? item.name : item.display_name}
+                                </div>
+                                {item.source === 'infra' ? (
+                                  <div className="text-xs text-gray-500 truncate">{item.adresse}</div>
+                                ) : (
+                                  item.subtitle ? <div className="text-xs text-gray-500 truncate">{item.subtitle}</div> : (item.type ? <div className="text-xs text-gray-500 truncate">{item.type}</div> : null)
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-3 text-sm text-gray-500">Aucune suggestion</div>
+                    )
                   ) : (
                     <div>
                       {recentSearches && recentSearches.length > 0 ? (
