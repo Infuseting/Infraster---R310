@@ -1,16 +1,25 @@
 "use client";
 
 import React from "react";
-import { Bookmark, MagnetIcon, Menu as MenuIcon, ScanSearch } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Bookmark,
+  MagnetIcon,
+  Menu as MenuIcon,
+  ScanSearch,
+  Book,
+} from "lucide-react";
 import RecentSearches from "./recent-searches";
-import { useLeftPanel } from './left-panel-context'
+import { useLeftPanel } from "./left-panel-context";
 
 export default function LeftNavbar() {
-  const { togglePanel } = useLeftPanel()
+  const { togglePanel } = useLeftPanel();
+  const router = useRouter();
   const items = [
     { key: "menu", label: "Menu", icon: MenuIcon },
     { key: "bookmarks", label: "Signets", icon: Bookmark },
     { key: "search", label: "Recherche", icon: ScanSearch },
+    { key: "manager", label: "Gestionnaire", icon: Book },
   ];
 
   return (
@@ -25,32 +34,37 @@ export default function LeftNavbar() {
                 title={it.label}
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-700"
                 aria-label={it.label}
-                  onClick={() => {
-                    try {
-                      if (it.key === 'search') {
-                        // toggle left-panel open/close when clicking the search button
-                        // use the LeftPanel context directly (more reliable than window events)
-                        togglePanel({ name: 'Recherches récentes', title: 'Recherches récentes', html: <RecentSearches vertical={false} /> })
-                      }
-                    } catch (e) {
-                      console.warn('failed to toggle leftPanel', e)
+                onClick={() => {
+                  try {
+                    if (it.key === "search") {
+                      // toggle left-panel open/close when clicking the search button
+                      // use the LeftPanel context directly (more reliable than window events)
+                      togglePanel({
+                        name: "Recherches récentes",
+                        title: "Recherches récentes",
+                        html: <RecentSearches vertical={false} />,
+                      });
+                    } else if (it.key === "manager") {
+                      router.push("/dashboard/");
                     }
-                  }}
+                  } catch (e) {
+                    console.warn("failed to toggle leftPanel", e);
+                  }
+                }}
               >
                 <Icon className="h-5 w-5" />
-                
               </button>
-              <span className="block w-10 truncate text-sm text-center">{it.label}</span>
+              <span className="block w-10 truncate text-sm text-center">
+                {it.label}
+              </span>
             </div>
           );
         })}
         <div className="border-t border-gray-200 w-full " />
-        
+
         <RecentSearches vertical={true} />
 
         <div className="flex-1" />
-
-      
       </div>
     </aside>
   );
