@@ -28,7 +28,7 @@ export default function LeftNavbar() {
         {items.map((it) => {
           const Icon = it.icon;
           return (
-            <div className="justify-center items-center flex flex-col">
+            <div key={it.key} className="justify-center items-center flex flex-col">
               <button
                 key={it.key}
                 title={it.label}
