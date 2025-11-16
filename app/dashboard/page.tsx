@@ -2,6 +2,7 @@
 
 import React, { JSX, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
+import AccordeonInfra from "../../components/accordeonInfra";
 
 const Carte = dynamic(() => import("../../components/ui/dashboarCarte"), {
   ssr: false,
@@ -32,12 +33,14 @@ export type Infrastructure = {
   latitude?: number;
   longitude?: number;
   description?: string;
+  piece?: string;
+  accessibility?: string;
 };
 
 /* Utils */
 const uid = (prefix = "") => prefix + Math.random().toString(36).slice(2, 9);
 
-const formatDate = (iso: string) =>
+export const formatDate = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {
     dateStyle: "short",
     timeStyle: "short",
@@ -67,7 +70,7 @@ const createInfrastructure = async (
 };
 
 /* Small UI primitives */
-const Badge: React.FC<{
+export const Badge: React.FC<{
   children: React.ReactNode;
   variant?: "neutral" | "success" | "warn";
 }> = ({ children, variant = "neutral" }) => {
@@ -93,6 +96,7 @@ export default function DashboardPage(): JSX.Element {
   const [selectedCenter, setSelectedCenter] = useState<[number, number] | null>(
     null
   );
+  const [selectedInfraId, setSelectedInfraId] = useState<string | null>(null);
   const [items, setItems] = useState<Infrastructure[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -288,66 +292,17 @@ export default function DashboardPage(): JSX.Element {
             ) : (
               <ul className="list-none m-0 p-0 grid gap-[10px]">
                 {pageItems.map((it) => (
-                  <li
+                  <AccordeonInfra
                     key={it.id}
-                    onClick={() => {
-                      if (
-                        typeof it.latitude === "number" &&
-                        typeof it.longitude === "number"
-                      ) {
-                        setSelectedCenter([it.latitude, it.longitude]);
-                      }
-                    }}
-                    className="cursor-pointer border border-[#eef2ff] rounded-lg p-3 flex gap-3 items-start hover:bg-slate-50 transition"
-                  >
-                    <div className="w-[10px]">
-                      <div
-                        className={`w-[10px] h-[10px] rounded-[2px] ${
-                          it.status === "Ouvert"
-                            ? "bg-emerald-500"
-                            : it.status === "Fermé"
-                            ? "bg-amber-500"
-                            : "bg-slate-400"
-                        }`}
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between gap-2">
-                        <div className="min-w-0">
-                          <strong className="block whitespace-nowrap overflow-hidden text-ellipsis">
-                            {it.name}
-                          </strong>
-                          <div className="text-[13px] text-slate-600">
-                            {it.type} • {it.address}
-                          </div>
-                        </div>
-
-                        <div className="text-right">
-                          <div className="mb-1.5">
-                            <Badge
-                              variant={
-                                it.status === "Ouvert"
-                                  ? "success"
-                                  : it.status === "Fermé"
-                                  ? "warn"
-                                  : "neutral"
-                              }
-                            >
-                              {it.status}
-                            </Badge>
-                          </div>
-                          <div className="text-[12px] text-slate-400">
-                            {formatDate(it.createdAt)}
-                          </div>
-                        </div>
-                      </div>
-
-                      {it.description ? (
-                        <p className="mt-2 text-slate-700">{it.description}</p>
-                      ) : null}
-                    </div>
-                  </li>
+                    infra={it}
+                    isOpen={selectedInfraId === it.id}
+                    onToggle={() =>
+                      setSelectedInfraId((prev) =>
+                        prev === it.id ? null : it.id
+                      )
+                    }
+                    onSelect={(center) => setSelectedCenter(center)}
+                  />
                 ))}
               </ul>
             )}
