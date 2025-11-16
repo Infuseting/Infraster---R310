@@ -1,6 +1,9 @@
 "use client"
 
 import { Bookmark, BookmarkCheck, BookMarked, BookMarkedIcon, ChevronRight, Clock, Mail, MapPin, Route, Share2, Volleyball, Check } from 'lucide-react'
+import { Popover, PopoverTrigger, PopoverContent } from './popover'
+import { format, addDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, isSameDay, subMonths, addMonths } from 'date-fns'
+import { ChevronLeft } from 'lucide-react'
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useToast, useToastDismiss } from './toast'
@@ -29,6 +32,7 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
     const [detail, setDetail] = React.useState<InfraDetail | null>(null)
     const [isFav, setIsFav] = React.useState<boolean>(false)
     const [copied, setCopied] = React.useState<boolean>(false)
+    const [availability, setAvailability] = React.useState<{ weekly: string[]; exceptions: Array<{ date_debut: string; date_fin: string; type: string }> } | null>(null)
     const toast = useToast()
     const dismissToast = useToastDismiss()
     
@@ -55,6 +59,13 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
                 const j = await res.json()
                 if (!mounted) return
                 setDetail(j as InfraDetail)
+                // fetch availability info (weekly openings + exceptions)
+                try {
+                    const av = await fetch(`/api/infra/availability?id=${encodeURIComponent(infra.id)}`, { credentials: 'same-origin' }).then(r => r.json()).catch(() => null)
+                    if (mounted && av && !av.error) setAvailability(av)
+                } catch (e) {
+                    // ignore availability errors
+                }
             } catch (e: any) {
                 if (!mounted) return
                 setDetail(null)
@@ -202,15 +213,47 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
                         </p>
                     </button>
                 </div>
-                <div className='w-full space-x-2 flex flex-row items-center hover:bg-gray-100/90 p-2 rounded-md cursor-pointer'>
-                    <Clock className='flex justify-center items-center min-w-7 min-h-7'/>
-                    <div className='flex flex-row flex-wrap items-center'>
-                        <p className='text-sm'>Ouvert <span className='inline-block w-2 h-2 bg-green-600 rounded-full align-middle' /></p>
-                        <p className='text-sm w-full text-gray-400'>Voir plus</p>
-                    </div>
-                    <div className='flex-1' />
-                    <ChevronRight className="h-5 w-5 text-gray-500" />
-                </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <div className='w-full space-x-2 flex flex-row items-center hover:bg-gray-100/90 p-2 rounded-md cursor-pointer'>
+                                    <Clock className='flex justify-center items-center min-w-7 min-h-7'/>
+                                    <div className='flex flex-row flex-wrap items-center'>
+                                        {(() => {
+                                            // determine today's status from availability if present
+                                            try {
+                                                const today = new Date()
+                                                const weekday = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][today.getDay() === 0 ? 6 : today.getDay() - 1]
+                                                let open = false
+                                                if (availability) {
+                                                    // if special opening exists for today -> open
+                                                    const ymd = today.toISOString().slice(0,10)
+                                                    const hasSpecial = availability.exceptions?.some((ex: any) => ex.type === 'OUVERTURE_SPECIALE' && ymd >= (ex.date_debut?.slice(0,10) || '') && ymd <= (ex.date_fin?.slice(0,10) || ''))
+                                                    const hasFermeture = availability.exceptions?.some((ex: any) => ex.type === 'FERMETURE' && ymd >= (ex.date_debut?.slice(0,10) || '') && ymd <= (ex.date_fin?.slice(0,10) || ''))
+                                                    if (hasSpecial) open = true
+                                                    else if (hasFermeture) open = false
+                                                    else open = availability.weekly?.includes(weekday)
+                                                }
+                                                return (
+                                                    <>
+                                                        <p className='text-sm'>{availability ? (open ? 'Ouvert' : 'Fermé') : 'Statut' } <span className={`inline-block w-2 h-2 ${availability ? (open ? 'bg-green-600' : 'bg-red-600') : 'bg-gray-400'} rounded-full align-middle`}></span></p>
+                                                    </>
+                                                )
+                                            } catch (e) {
+                                                return (<p className='text-sm'>Statut <span className='inline-block w-2 h-2 bg-gray-400 rounded-full align-middle' /></p>)
+                                            }
+                                        })()}
+
+                                    </div>
+                                    <div className='flex-1' />
+                                    <ChevronRight className="h-5 w-5 text-gray-500" />
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent className='w-80 max-h-96 overflow-auto'>
+                                <div className='p-2'>
+                                    <CalendarView availability={availability} />
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                 <div className='w-full space-x-2 flex flex-row items-center hover:bg-gray-100/90 p-2 rounded-md cursor-pointer' onClick={async (e: React.MouseEvent<HTMLDivElement>) => {
                             try {
                                 const email = detail?.responsable?.email ?? ''
@@ -275,6 +318,55 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
             </div>
 
 
+        </div>
+    )
+}
+
+function CalendarView({ availability }: { availability: { weekly: string[]; exceptions: Array<{ date_debut: string; date_fin: string; type: string }> } | null }) {
+    const [month, setMonth] = React.useState<Date>(new Date())
+
+    function isOpenOnDate(d: Date) {
+        if (!availability) return null
+        try {
+            const ymd = d.toISOString().slice(0,10)
+            const weekday = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'][d.getDay() === 0 ? 6 : d.getDay() - 1]
+            const hasSpecialOpen = availability.exceptions.some(ex => ex.type === 'OUVERTURE_SPECIALE' && ymd >= (ex.date_debut?.slice(0,10) || '') && ymd <= (ex.date_fin?.slice(0,10) || ''))
+            const hasFermeture = availability.exceptions.some(ex => ex.type === 'FERMETURE' && ymd >= (ex.date_debut?.slice(0,10) || '') && ymd <= (ex.date_fin?.slice(0,10) || ''))
+            if (hasSpecialOpen) return true
+            if (hasFermeture) return false
+            return availability.weekly.includes(weekday)
+        } catch (e) {
+            return null
+        }
+    }
+
+    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 })
+    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 })
+    const days: Date[] = []
+    for (let d = start; d <= end; d = addDays(d, 1)) days.push(d)
+
+    return (
+        <div>
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setMonth(subMonths(month, 1))} className="p-1"><ChevronLeft className="h-4 w-4"/></button>
+                    <div className="font-medium">{format(month, 'LLLL yyyy')}</div>
+                    <button onClick={() => setMonth(addMonths(month, 1))} className="p-1"><ChevronRight className="h-4 w-4"/></button>
+                </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-xs text-center">
+                {['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'].map(d => <div key={d} className="font-semibold">{d}</div>)}
+                {days.map((d) => {
+                    const open = isOpenOnDate(d)
+                    const muted = !isSameMonth(d, month)
+                    const today = isSameDay(d, new Date())
+                    return (
+                        <div key={d.toISOString()} className={`p-1 rounded ${today ? 'bg-gray-100' : ''}`}>
+                            <div className={`${muted ? 'text-gray-300' : (open === null ? 'text-gray-400' : (open ? 'text-green-600' : 'text-red-600'))} text-sm`}>{format(d, 'd')}</div>
+                        </div>
+                    )
+                })}
+            </div>
         </div>
     )
 }

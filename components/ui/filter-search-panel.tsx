@@ -47,6 +47,7 @@ export default function FilterSearchPanel() {
         const [distanceKm, setDistanceKm] = React.useState<number>(0)
         const [dateFrom, setDateFrom] = React.useState<Date | undefined>(undefined)
         const [dateTo, setDateTo] = React.useState<Date | undefined>(undefined)
+        const [isSearching, setIsSearching] = React.useState<boolean>(false)
         const [userType, setUserType] = React.useState<string | null>(null)
 
         React.useEffect(() => {
@@ -131,7 +132,8 @@ export default function FilterSearchPanel() {
                 limit: payload.limit || 100
             }
 
-            // send to API
+            // send to API with loading state
+            setIsSearching(true)
             try {
                 const res = await fetch('/api/search', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } })
                 if (!res.ok) throw new Error('search failed')
@@ -178,6 +180,8 @@ export default function FilterSearchPanel() {
 
             } catch (e) {
                 console.error('filter search error', e)
+            } finally {
+                setIsSearching(false)
             }
         }
 
@@ -288,7 +292,17 @@ export default function FilterSearchPanel() {
                                 </>
                             )}
                             <div className="w-full">
-                                <Button onClick={() => performFilterSearch()} className="w-full">Rechercher</Button>
+                                <Button onClick={() => performFilterSearch()} className="w-full" disabled={isSearching} aria-busy={isSearching}>
+                                    {isSearching ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                            <span>Recherche...</span>
+                                        </span>
+                                    ) : 'Rechercher'}
+                                </Button>
                             </div>
 
                         </div>

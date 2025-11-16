@@ -49,41 +49,42 @@ export async function POST(request: Request) {
 
     // Build dynamic SQL
     const where: string[] = []
-    const params: any[] = []
+    // we'll collect params in three groups so we can place them in the correct order
+    const cteParams: any[] = [] // parameters used by the calendar CTE (start,end)
+    const centerParams: any[] = [] // parameters used for distance calculation (radians center)
+    const whereParams: any[] = [] // parameters for where-clause conditions
+    let useDateAvailability = false
 
     if (q) {
       where.push('(Infrastructure.name LIKE ? OR Infrastructure.adresse LIKE ?)')
       const like = `%${q}%`
-      params.push(like, like)
+      whereParams.push(like, like)
     }
 
     if (pieces.length > 0) {
       // match by piece name via has_Piece + Piece
       where.push(`EXISTS (SELECT 1 FROM has_Piece hp JOIN Piece p ON hp.idPiece = p.idPiece WHERE hp.idInfrastructure = Infrastructure.idInfrastructure AND p.Name IN (${pieces.map(() => '?').join(',')}))`)
-      params.push(...pieces)
+      whereParams.push(...pieces)
     }
 
     if (equipments.length > 0) {
-      where.push(`EXISTS (SELECT 1 FROM has_Equipements he JOIN Equipements e ON he.idEquipements = e.idEquipements WHERE he.idInfrastrcture = Infrastructure.idInfrastructure AND e.typeEquipements IN (${equipments.map(() => '?').join(',')}))`)
-      params.push(...equipments)
+      // fix: idInfrastructure column name
+      where.push(`EXISTS (SELECT 1 FROM has_Equipements he JOIN Equipements e ON he.idEquipements = e.idEquipements WHERE he.idInfrastructure = Infrastructure.idInfrastructure AND e.typeEquipements IN (${equipments.map(() => '?').join(',')}))`)
+      whereParams.push(...equipments)
     }
 
     if (accessibilites.length > 0) {
       where.push(`EXISTS (SELECT 1 FROM is_accessible ia JOIN Accessibilite a ON ia.idAccessibilite = a.idAccessibilite WHERE ia.idInfrastructure = Infrastructure.idInfrastructure AND a.name IN (${accessibilites.map(() => '?').join(',')}))`)
-      params.push(...accessibilites)
+      whereParams.push(...accessibilites)
     }
-
     if (dateFrom || dateTo) {
-      if (dateFrom && dateTo) {
-        where.push(`EXISTS (SELECT 1 FROM Informations info WHERE info.idInfrastructure = Infrastructure.idInfrastructure AND info.apparition_date >= ? AND info.apparition_date <= ? )`)
-        params.push(dateFrom, dateTo)
-      } else if (dateFrom) {
-        where.push(`EXISTS (SELECT 1 FROM Informations info WHERE info.idInfrastructure = Infrastructure.idInfrastructure AND info.apparition_date >= ? )`)
-        params.push(dateFrom)
-      } else if (dateTo) {
-        where.push(`EXISTS (SELECT 1 FROM Informations info WHERE info.idInfrastructure = Infrastructure.idInfrastructure AND info.apparition_date <= ? )`)
-        params.push(dateTo)
-      }
+      // Use a single calendar CTE computed once and derive an `avail` set of infrastructures
+      // that have at least one open day (or a special opening) in the requested range.
+      // We'll prepend the CTE to the final SQL and pass its params in front of others.
+      const start = dateFrom || dateTo
+      const end = dateTo || dateFrom
+      useDateAvailability = true
+      cteParams.push(start, end)
     }
 
     // base select
@@ -93,17 +94,28 @@ export async function POST(request: Request) {
     let having = ''
     if (centerLat != null && centerLon != null && distanceKm > 0) {
       select += `, (6371 * acos( cos(radians(?)) * cos(radians(CAST(Infrastructure.latitude AS DECIMAL(10,6)))) * cos(radians(CAST(Infrastructure.longitude AS DECIMAL(10,6))) - radians(?)) + sin(radians(?)) * sin(radians(CAST(Infrastructure.latitude AS DECIMAL(10,6))))) ) as distance`
-      // center params go at front of params for SELECT
-      params.unshift(centerLat, centerLon, centerLat)
+      // center params will be placed after cte params but before where params
+      centerParams.push(centerLat, centerLon, centerLat)
       having = ` HAVING distance <= ${Number(distanceKm)}`
     }
 
     const whereClause = where.length > 0 ? ('WHERE ' + where.join(' AND ')) : ''
     const limitClause = ` LIMIT ${rawLimit}`
 
-    const sql = `${select} FROM Infrastructure ${whereClause} ${having} ${limitClause}`
+    // If we're filtering by availability range, compute a calendar CTE and an `avail` set
+    // once, then join it to Infrastructure to avoid evaluating the recursive logic per-row.
+    let sql = ''
+    if (useDateAvailability) {
+      const cte = `WITH RECURSIVE calendar AS ( SELECT ? AS date_jour UNION ALL SELECT DATE_ADD(date_jour, INTERVAL 1 DAY) FROM calendar WHERE date_jour < ? ), avail AS ( SELECT DISTINCT io.idInfrastructure FROM calendar c JOIN Ouverture_Jour oj ON oj.jour = ELT(WEEKDAY(c.date_jour)+1, 'Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche') JOIN Infra_Ouverture io ON io.id = oj.id_ouverture WHERE NOT EXISTS (SELECT 1 FROM Ouverture_Exception oe JOIN Infra_Ouverture io2 ON io2.id = oe.id_ouverture WHERE io2.idInfrastructure = io.idInfrastructure AND c.date_jour BETWEEN oe.date_debut AND oe.date_fin AND oe.type = 'FERMETURE') UNION SELECT DISTINCT io2.idInfrastructure FROM calendar c JOIN Ouverture_Exception oe JOIN Infra_Ouverture io2 ON io2.id = oe.id_ouverture WHERE oe.type = 'OUVERTURE_SPECIALE' AND c.date_jour BETWEEN oe.date_debut AND oe.date_fin )`
+      sql = `${cte} ${select} FROM Infrastructure JOIN avail a ON a.idInfrastructure = Infrastructure.idInfrastructure ${whereClause} ${having} ${limitClause}`
+    } else {
+      sql = `${select} FROM Infrastructure ${whereClause} ${having} ${limitClause}`
+    }
 
-    const rows = await query(sql, params)
+    // final params order: cteParams, centerParams, whereParams
+    const finalParams = [...cteParams, ...centerParams, ...whereParams]
+
+    const rows = await query(sql, finalParams)
 
     const items = (rows || []).map((r: any) => ({
       id: r.id,
