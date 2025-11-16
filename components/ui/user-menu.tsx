@@ -47,6 +47,7 @@ export default function UserMenu({ name }: { name?: string }) {
         const maybeName = json?.name || json?.user?.name
         if (maybeName && maybeName.length > 0) {
           setInitial(maybeName.trim()[0].toUpperCase())
+          setUserType(json?.user?.type || null)
         }
       } catch (e) {
         // ignore
@@ -57,6 +58,7 @@ export default function UserMenu({ name }: { name?: string }) {
   const router = useRouter()
   const [loggingOut, setLoggingOut] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
+  const [userType, setUserType] = React.useState<string | null>(null)
 
   async function handleLogout() {
     if (loggingOut) return
@@ -137,6 +139,9 @@ export default function UserMenu({ name }: { name?: string }) {
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
+          { userType === 'PARTICULIER' || userType === 'ASSOCIATION' ? (
+            null
+          ) : (
           <button
             onClick={handleDeleteAccount}
             className="w-full text-left text-red-600"
@@ -145,6 +150,7 @@ export default function UserMenu({ name }: { name?: string }) {
           >
             {deleting ? "Suppression..." : "Supprimer mon compte"}
           </button>
+          )}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

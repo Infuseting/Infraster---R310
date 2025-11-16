@@ -99,8 +99,40 @@ CREATE TABLE `Piece` (
   `Name` longtext NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
+CREATE TABLE `Infra_Ouverture` (
+  `id` int NOT NULL,
+  `idInfrastructure` varchar(20) NOT NULL,
+  `name` longtext
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---ALTER TABLE `Accessibilite`
+CREATE TABLE `Jauge` (
+  `id` int NOT NULL,
+  `idInfrastructure` varchar(20) NOT NULL,
+  `max_jauge` int NOT NULL,
+  `jauge` int NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `Ouverture_Exception` (
+  `id` int NOT NULL,
+  `id_ouverture` int DEFAULT NULL,
+  `date_debut` datetime DEFAULT NULL,
+  `date_fin` datetime DEFAULT NULL,
+  `type` enum('Ouverture','Fermeture''') CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `Ouverture_Jour` (
+  `id` int NOT NULL,
+  `id_ouverture` int NOT NULL,
+  `jour` enum('Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche') NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `Accessibilite`
+--
+ALTER TABLE `Accessibilite`
   ADD PRIMARY KEY (`idAccessibilite`);
 
 --
@@ -174,12 +206,42 @@ ALTER TABLE `Infrastructure`
   ADD KEY `fk_Infrastructure_Ville1_idx` (`idVille`);
 
 --
+-- Indexes for table `Infra_Ouverture`
+--
+ALTER TABLE `Infra_Ouverture`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idInfrastructure` (`idInfrastructure`);
+
+--
 -- Indexes for table `is_accessible`
 --
 ALTER TABLE `is_accessible`
   ADD PRIMARY KEY (`idInfrastructure`,`idAccessibilite`),
   ADD KEY `fk_Infrastructure_has_Accessibilite_Accessibilite1_idx` (`idAccessibilite`),
   ADD KEY `fk_Infrastructure_has_Accessibilite_Infrastructure1_idx` (`idInfrastructure`);
+
+--
+-- Indexes for table `Jauge`
+--
+ALTER TABLE `Jauge`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idInfrastructure` (`idInfrastructure`);
+
+--
+-- Indexes for table `Ouverture_Exception`
+--
+ALTER TABLE `Ouverture_Exception`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `id_ouverture_2` (`id_ouverture`),
+  ADD KEY `id_ouverture` (`id_ouverture`);
+
+--
+-- Indexes for table `Ouverture_Jour`
+--
+ALTER TABLE `Ouverture_Jour`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `id_ouverture` (`id_ouverture`),
+  ADD UNIQUE KEY `id_ouverture_2` (`id_ouverture`);
 
 --
 -- Indexes for table `Piece`
@@ -224,7 +286,7 @@ ALTER TABLE `Accessibilite`
 -- AUTO_INCREMENT for table `access_token`
 --
 ALTER TABLE `access_token`
-  MODIFY `idToken` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `idToken` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `Commune`
@@ -245,10 +307,34 @@ ALTER TABLE `Informations`
   MODIFY `idInformations` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `Infra_Ouverture`
+--
+ALTER TABLE `Infra_Ouverture`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90316;
+
+--
+-- AUTO_INCREMENT for table `Jauge`
+--
+ALTER TABLE `Jauge`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45113;
+
+--
+-- AUTO_INCREMENT for table `Ouverture_Exception`
+--
+ALTER TABLE `Ouverture_Exception`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72234;
+
+--
+-- AUTO_INCREMENT for table `Ouverture_Jour`
+--
+ALTER TABLE `Ouverture_Jour`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=90317;
+
+--
 -- AUTO_INCREMENT for table `Piece`
 --
 ALTER TABLE `Piece`
-  MODIFY `idPiece` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=93;
+  MODIFY `idPiece` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `Region`
@@ -266,7 +352,7 @@ ALTER TABLE `responsable`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `idUser` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72866;
+  MODIFY `idUser` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=72867;
 
 --
 -- Constraints for dumped tables
@@ -319,11 +405,35 @@ ALTER TABLE `Infrastructure`
   ADD CONSTRAINT `fk_Infrastructure_Ville1` FOREIGN KEY (`idVille`) REFERENCES `Commune` (`idVille`);
 
 --
+-- Constraints for table `Infra_Ouverture`
+--
+ALTER TABLE `Infra_Ouverture`
+  ADD CONSTRAINT `Infra_Ouverture_ibfk_1` FOREIGN KEY (`idInfrastructure`) REFERENCES `Infrastructure` (`idInfrastructure`);
+
+--
 -- Constraints for table `is_accessible`
 --
 ALTER TABLE `is_accessible`
   ADD CONSTRAINT `fk_Infrastructure_has_Accessibilite_Accessibilite1` FOREIGN KEY (`idAccessibilite`) REFERENCES `Accessibilite` (`idAccessibilite`),
   ADD CONSTRAINT `fk_Infrastructure_has_Accessibilite_Infrastructure1` FOREIGN KEY (`idInfrastructure`) REFERENCES `Infrastructure` (`idInfrastructure`);
+
+--
+-- Constraints for table `Jauge`
+--
+ALTER TABLE `Jauge`
+  ADD CONSTRAINT `Jauge_ibfk_1` FOREIGN KEY (`idInfrastructure`) REFERENCES `Infrastructure` (`idInfrastructure`);
+
+--
+-- Constraints for table `Ouverture_Exception`
+--
+ALTER TABLE `Ouverture_Exception`
+  ADD CONSTRAINT `Ouverture_Exception_ibfk_1` FOREIGN KEY (`id_ouverture`) REFERENCES `Infra_Ouverture` (`id`);
+
+--
+-- Constraints for table `Ouverture_Jour`
+--
+ALTER TABLE `Ouverture_Jour`
+  ADD CONSTRAINT `Ouverture_Jour_ibfk_1` FOREIGN KEY (`id_ouverture`) REFERENCES `Infra_Ouverture` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

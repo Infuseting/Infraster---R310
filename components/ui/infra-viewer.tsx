@@ -33,6 +33,7 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
     const [isFav, setIsFav] = React.useState<boolean>(false)
     const [copied, setCopied] = React.useState<boolean>(false)
     const [availability, setAvailability] = React.useState<{ weekly: string[]; exceptions: Array<{ date_debut: string; date_fin: string; type: string }> } | null>(null)
+    const [jaugeData, setJaugeData] = React.useState<{ jauge: number | null; max_jauge: number | null } | null>(null)
     const toast = useToast()
     const dismissToast = useToastDismiss()
     
@@ -63,6 +64,13 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
                 try {
                     const av = await fetch(`/api/infra/availability?id=${encodeURIComponent(infra.id)}`, { credentials: 'same-origin' }).then(r => r.json()).catch(() => null)
                     if (mounted && av && !av.error) setAvailability(av)
+                    // fetch jauge (current / max)
+                    try {
+                        const j = await fetch(`/api/infra/jauge?id=${encodeURIComponent(infra.id)}`, { credentials: 'same-origin' }).then(r => r.json()).catch(() => null)
+                        if (mounted && j && !j.error) setJaugeData({ jauge: j.jauge ?? null, max_jauge: j.max_jauge ?? null })
+                    } catch (e) {
+                        // ignore
+                    }
                 } catch (e) {
                     // ignore availability errors
                 }
@@ -283,6 +291,14 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
                 
             </div>
             <div className='w-full h-0.5 border-t'></div>
+            {jaugeData && (jaugeData.jauge != null && jaugeData.max_jauge != null) ? (
+                <div className='px-4'>
+                    <SemiCircleGauge value={jaugeData.jauge} max={jaugeData.max_jauge} id={`g-${infra.id}`} />
+                </div>
+            ) : (
+                <div className='px-4 text-sm text-gray-500'>Jauge non disponible</div>
+            )}
+            <div className='w-full h-0.5 border-t'></div>
             <div className='flex flex-row flex-wrap px-4 justify-center space-y-4'>
                 {detail?.equipments && detail.equipments.length > 0 ? (
                     detail.equipments.map((eq) => (
@@ -367,6 +383,32 @@ function CalendarView({ availability }: { availability: { weekly: string[]; exce
                     )
                 })}
             </div>
+        </div>
+    )
+}
+
+function SemiCircleGauge({ value, max, id }: { value: number; max: number; id: string }) {
+    const percent = Math.max(0, Math.min(1, value / Math.max(1, max)))
+    const gradientId = `grad-${id}`
+    // viewBox 0 0 120 60, arc from x=12 to x=108 with r=48
+    return (
+        <div className="w-full flex flex-col items-center">
+            <svg viewBox="0 0 120 60" className="w-full h-28">
+                <defs>
+                    <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#16a34a" />
+                        <stop offset="50%" stopColor="#f59e0b" />
+                        <stop offset="100%" stopColor="#ef4444" />
+                    </linearGradient>
+                </defs>
+                {/* background semicircle */}
+                <path d="M12 60 A48 48 0 0 1 108 60" stroke="#e6e6e6" strokeWidth={12} fill="none" strokeLinecap="round" />
+                {/* foreground semicircle with variable length */}
+                <path d="M12 60 A48 48 0 0 1 108 60" stroke={`url(#${gradientId})`} strokeWidth={12} fill="none" strokeLinecap="round" pathLength="100" strokeDasharray={`${percent * 100} 100`} />
+                {/* center text */}
+                <text x="50%" y="50" textAnchor="middle" className="text-sm font-medium" fill="#111">{Math.round(value)} / {Math.round(max)}</text>
+            </svg>
+            
         </div>
     )
 }
