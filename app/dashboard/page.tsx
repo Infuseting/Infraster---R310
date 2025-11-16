@@ -1,7 +1,11 @@
 "use client";
 
 import React, { JSX, useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 
+const Carte = dynamic(() => import("../../components/ui/dashboarCarte"), {
+  ssr: false,
+});
 /* Types */
 type InfrastructureType =
   | "Multisports/City-stades"
@@ -415,17 +419,7 @@ export default function DashboardPage(): JSX.Element {
             </div>
           </div>
 
-          <div className="bg-white rounded-[10px] p-3">
-            <h4 className="mb-2">Carte</h4>
-
-            <div
-              aria-hidden
-              className="h-[300px] rounded-[8px] flex items-center justify-center text-sm text-slate-600 bg-gradient-to-b from-[#e6eefc] to-[#f8fafc] text-center"
-            >
-              Placeholder carte — intégrez Leaflet/Mapbox/Google Maps ici pour
-              voir les infrastructures géolocalisées
-            </div>
-          </div>
+          <Carte infrastructures={items} />
         </aside>
       </main>
 
