@@ -3,7 +3,18 @@
 import React, { JSX, useEffect, useMemo, useState } from "react";
 
 /* Types */
-type InfrastructureType = "Multisports/City-stades" | "Boucle de randonnée" | "Salle de musculation/cardiotraining" | "Salle multisports (gymnase)" |"Bassin mixte de natation"|"Carrière"|"Terrain de pétanque"|"Terrain de football"|"Terrain de basket-ball"|"Dojo / Salle d'arts martiaux"| "Autre";
+type InfrastructureType =
+  | "Multisports/City-stades"
+  | "Boucle de randonnée"
+  | "Salle de musculation/cardiotraining"
+  | "Salle multisports (gymnase)"
+  | "Bassin mixte de natation"
+  | "Carrière"
+  | "Terrain de pétanque"
+  | "Terrain de football"
+  | "Terrain de basket-ball"
+  | "Dojo / Salle d'arts martiaux"
+  | "Autre";
 
 export type Infrastructure = {
   id: string;
@@ -11,7 +22,7 @@ export type Infrastructure = {
   type: InfrastructureType;
   address?: string;
   status: "Ouvert" | "Fermé" | "Plein";
-  createdAt: string; 
+  createdAt: string;
   latitude?: number;
   longitude?: number;
   description?: string;
@@ -28,9 +39,9 @@ const formatDate = (iso: string) =>
 
 /* API calls */
 const fetchInfrastructures = async (): Promise<Infrastructure[]> => {
-  const res = await fetch('/api/infra/my');
+  const res = await fetch("/api/infra/my");
   if (!res.ok) {
-    throw new Error('Failed to fetch infrastructures');
+    throw new Error("Failed to fetch infrastructures");
   }
   return res.json();
 };
@@ -38,13 +49,13 @@ const fetchInfrastructures = async (): Promise<Infrastructure[]> => {
 const createInfrastructure = async (
   payload: Omit<Infrastructure, "id" | "createdAt">
 ): Promise<Infrastructure> => {
-  const res = await fetch('/api/infra/create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+  const res = await fetch("/api/infra/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
-    throw new Error('Failed to create infrastructure');
+    throw new Error("Failed to create infrastructure");
   }
   return res.json();
 };
@@ -63,9 +74,8 @@ const Badge: React.FC<{
   const color = variant === "warn" ? "#92400e" : "#0f172a";
   return (
     <span
-     className="inline-block px-2 py-1 rounded-lg text-xs font-semibold"
+      className="inline-block px-2 py-1 rounded-lg text-xs font-semibold"
       style={{ background: bg, color }}
-
     >
       {children}
     </span>
@@ -96,25 +106,29 @@ export default function DashboardPage(): JSX.Element {
 
   useEffect(() => {
     // Check user authentication and type
-    fetch('/api/auth/me')
-      .then(res => {
+    fetch("/api/auth/me")
+      .then((res) => {
         if (!res.ok) {
-          window.location.href = '/login';
+          window.location.href = "/login";
           return;
         }
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         if (!data) return;
         setUserType(data.type);
-        
+
         // Only ENTREPRISE, COLLECTIVITE, and ASSOCIATION can access dashboard
-        if (!['ENTREPRISE', 'COLLECTIVITE', 'ASSOCIATION'].includes(data.type)) {
-          alert('Vous devez être une entreprise, collectivité ou association pour accéder au dashboard.');
-          window.location.href = '/';
+        if (
+          !["ENTREPRISE", "COLLECTIVITE", "ASSOCIATION"].includes(data.type)
+        ) {
+          alert(
+            "Vous devez être une entreprise, collectivité ou association pour accéder au dashboard."
+          );
+          window.location.href = "/";
           return;
         }
-        
+
         // Fetch infrastructures
         setLoading(true);
         fetchInfrastructures()
@@ -123,8 +137,8 @@ export default function DashboardPage(): JSX.Element {
           .finally(() => setLoading(false));
       })
       .catch((e) => {
-        console.error('Auth check failed:', e);
-        window.location.href = '/login';
+        console.error("Auth check failed:", e);
+        window.location.href = "/login";
       });
   }, []);
 
@@ -170,61 +184,75 @@ export default function DashboardPage(): JSX.Element {
   };
 
   return (
-<div className="p-5 font-sans max-w-[1100px] mx-auto">
-  <header className="flex items-center justify-between gap-3">
-    <div>
-      <h2 className="m-0 text-xl font-semibold">Tableau de bord des infrastructures</h2>
-      <p className="mt-1.5 text-slate-600">Voir, filtrer et ajouter des infrastructures de la collectivité</p>
-    </div>
+    <div className="p-5 font-sans max-w-[1100px] mx-auto">
+      <header className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className=" flex justify-start self-start">
+          {" "}
+          <button
+            onClick={() => {
+              window.location.href = "/map";
+            }}
+            aria-label="Retour à l'accueil"
+            className="z-50 inline-flex items-center justify-center px-3.5 py-2 rounded-lg bg-teal-600 text-white text-sm font-medium shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-300"
+          >
+            X
+          </button>
+        </div>
+        <div>
+          <h2 className="m-0 text-xl font-semibold">
+            Tableau de bord des infrastructures
+          </h2>
+          <p className="mt-1.5 text-slate-600">
+            Voir, filtrer et ajouter des infrastructures de la collectivité
+          </p>
+        </div>
 
-    <div className="flex gap-2">
-      <button
-        onClick={() => setShowForm(true)}
-        className="bg-[#0ea5a4] text-white border-0 py-2.5 px-3.5 rounded-lg cursor-pointer font-extrabold"
-      >
-
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-[#0ea5a4] text-white border-0 py-2.5 px-3.5 rounded-lg cursor-pointer font-extrabold"
+          >
             + Ajouter une infrastructure
           </button>
         </div>
       </header>
 
-   <main className="mt-5 grid grid-cols-[1fr_360px] gap-[18px]">
-  {/* Left: List */}
-  <section className="min-w-0">
-    <button
-      onClick={() => { window.location.href = "/map"; }}
-      aria-label="Retour à l'accueil"
-      className="absolute top-2 left-2 z-50 inline-flex items-center justify-center px-3.5 py-2 rounded-md bg-teal-600 text-white text-sm font-medium shadow-sm hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-300"
-    >
-      X
-    </button>
-
-    <div className="flex gap-2 flex-wrap mb-3">
-      <input
-        aria-label="Recherche"
-        placeholder="Rechercher par nom, adresse, description..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="flex-1 p-2 rounded-lg border border-[#e6e9ef]"
-      />
+      <main className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-[18px]">
+        {/* Left: List */}
+        <section className="min-w-0">
+          <div className="flex gap-2 flex-wrap mb-3">
+            <input
+              aria-label="Recherche"
+              placeholder="Rechercher par nom, adresse, description..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 p-2 rounded-lg border border-[#e6e9ef]"
+            />
 
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as any)}
               style={{ padding: 8, borderRadius: 8 }}
             >
-         
               <option value="All">Tous types</option>
-              <option value="Multisports/City-stades">MultiSports/City-stades</option>
+              <option value="Multisports/City-stades">
+                MultiSports/City-stades
+              </option>
               <option value="Boucle de randonnée">Boucle de randonnée</option>
-              <option value="Salle de musculation/cardiotraining">Salle de musculation/cardiotraining</option>
+              <option value="Salle de musculation/cardiotraining">
+                Salle de musculation/cardiotraining
+              </option>
               <option value="Salle multisports (gymnase)">Gymnase</option>
               <option value="Bassin mixte de natation">Natation</option>
               <option value="Carrière">Carrière</option>
               <option value="Terrain de pétanque">Terrain de pétanque</option>
               <option value="Terrain de football">Terrain de football</option>
-              <option value="Terrain de basket-ball">Terrain de basket-ball</option>
-              <option value="Dojo / Salle d'arts martiaux">Dojo / Salle d'arts martiaux</option>
+              <option value="Terrain de basket-ball">
+                Terrain de basket-ball
+              </option>
+              <option value="Dojo / Salle d'arts martiaux">
+                Dojo / Salle d'arts martiaux
+              </option>
               <option value="Autre">Autre</option>
             </select>
             <select
@@ -239,99 +267,102 @@ export default function DashboardPage(): JSX.Element {
             </select>
           </div>
 
-         <div className="bg-white rounded-[10px] p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
-  {loading ? (
-    <p>Chargement...</p>
-  ) : error ? (
-    <p className="text-[crimson]">{error}</p>
-  ) : filtered.length === 0 ? (
-    <p>Aucune infrastructure trouvée.</p>
-  ) : (
-    <ul className="list-none m-0 p-0 grid gap-[10px]">
+          <div className="bg-white rounded-[10px] p-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+            {loading ? (
+              <p>Chargement...</p>
+            ) : error ? (
+              <p className="text-[crimson]">{error}</p>
+            ) : filtered.length === 0 ? (
+              <p>Aucune infrastructure trouvée.</p>
+            ) : (
+              <ul className="list-none m-0 p-0 grid gap-[10px]">
+                {pageItems.map((it) => (
+                  <li
+                    key={it.id}
+                    className="border border-[#eef2ff] rounded-lg p-3 flex gap-3 items-start"
+                  >
+                    <div className="w-[10px]">
+                      <div
+                        className={`w-[10px] h-[10px] rounded-[2px] ${
+                          it.status === "Ouvert"
+                            ? "bg-emerald-500"
+                            : it.status === "Fermé"
+                            ? "bg-amber-500"
+                            : "bg-slate-400"
+                        }`}
+                      />
+                    </div>
 
-         {pageItems.map((it) => (
-  <li
-    key={it.id}
-    className="border border-[#eef2ff] rounded-lg p-3 flex gap-3 items-start"
-  >
-    <div className="w-[10px]">
-      <div
-        className={`w-[10px] h-[10px] rounded-[2px] ${
-          it.status === "Ouvert"
-            ? "bg-emerald-500"
-            : it.status === "Fermé"
-            ? "bg-amber-500"
-            : "bg-slate-400"
-        }`}
-      />
-    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between gap-2">
+                        <div className="min-w-0">
+                          <strong className="block whitespace-nowrap overflow-hidden text-ellipsis">
+                            {it.name}
+                          </strong>
+                          <div className="text-[13px] text-slate-600">
+                            {it.type} • {it.address}
+                          </div>
+                        </div>
 
-    <div className="flex-1 min-w-0">
-      <div className="flex justify-between gap-2">
-        <div className="min-w-0">
-          <strong className="block whitespace-nowrap overflow-hidden text-ellipsis">
-            {it.name}
-          </strong>
-          <div className="text-[13px] text-slate-600">
-            {it.type} • {it.address}
-          </div>
-        </div>
+                        <div className="text-right">
+                          <div className="mb-1.5">
+                            <Badge
+                              variant={
+                                it.status === "Ouvert"
+                                  ? "success"
+                                  : it.status === "Fermé"
+                                  ? "warn"
+                                  : "neutral"
+                              }
+                            >
+                              {it.status}
+                            </Badge>
+                          </div>
+                          <div className="text-[12px] text-slate-400">
+                            {formatDate(it.createdAt)}
+                          </div>
+                        </div>
+                      </div>
 
-        <div className="text-right">
-          <div className="mb-1.5">
-            <Badge
-              variant={
-                it.status === "Ouvert" ? "success" : it.status === "Fermé" ? "warn" : "neutral"
-              }
-            >
-              {it.status}
-            </Badge>
-          </div>
-          <div className="text-[12px] text-slate-400">
-            {formatDate(it.createdAt)}
-          </div>
-        </div>
-      </div>
-
-      {it.description ? (
-        <p className="mt-2 text-slate-700">{it.description}</p>
-      ) : null}
-    </div>
-  </li>
-))}
+                      {it.description ? (
+                        <p className="mt-2 text-slate-700">{it.description}</p>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
               </ul>
             )}
 
             {/* Pagination */}
-          {filtered.length > perPage && (
-  <div className="flex justify-between items-center mt-3">
-    <div className="text-slate-500">
-      {filtered.length} résultat(s)
-    </div>
+            {filtered.length > perPage && (
+              <div className="flex justify-between items-center mt-3">
+                <div className="text-slate-500">
+                  {filtered.length} résultat(s)
+                </div>
 
-    <div className="flex gap-2">
-      <button
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-        disabled={page === 1}
-        className="px-2.5 py-1.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:bg-slate-100"
-      >
-        Préc
-      </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-2.5 py-1.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:bg-slate-100"
+                  >
+                    Préc
+                  </button>
 
-      <div className="px-2.5 py-1.5 bg-slate-50 rounded-md text-slate-700">
-        {page} / {totalPages}
-      </div>
+                  <div className="px-2.5 py-1.5 bg-slate-50 rounded-md text-slate-700">
+                    {page} / {totalPages}
+                  </div>
 
-      <button
-        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-        disabled={page === totalPages}
-        className="px-2.5 py-1.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:bg-slate-100"
-      >
-        Suiv
-      </button>
-    </div>
-  </div>
-)}
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-2.5 py-1.5 rounded-md disabled:opacity-50 disabled:cursor-not-allowed border border-transparent hover:bg-slate-100"
+                  >
+                    Suiv
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
@@ -384,14 +415,13 @@ export default function DashboardPage(): JSX.Element {
             </div>
           </div>
 
-        <div className="bg-white rounded-[10px] p-3">
-  <h4 className="mb-2">Carte</h4>
+          <div className="bg-white rounded-[10px] p-3">
+            <h4 className="mb-2">Carte</h4>
 
-  <div
-    aria-hidden
-    className="h-[300px] rounded-[8px] flex items-center justify-center text-sm text-slate-600 bg-gradient-to-b from-[#e6eefc] to-[#f8fafc] text-center"
-  >
-
+            <div
+              aria-hidden
+              className="h-[300px] rounded-[8px] flex items-center justify-center text-sm text-slate-600 bg-gradient-to-b from-[#e6eefc] to-[#f8fafc] text-center"
+            >
               Placeholder carte — intégrez Leaflet/Mapbox/Google Maps ici pour
               voir les infrastructures géolocalisées
             </div>
