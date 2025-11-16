@@ -40,7 +40,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
       }
       // close current (triggers animation in LeftPanel)
       setOpen(false)
-      try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:close')) } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close')) } catch (e) {}
       // schedule opening new content after animation
       pendingTimeoutRef.current = window.setTimeout(() => {
         pendingTimeoutRef.current = null
@@ -48,7 +48,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
         setTitle(p.title ?? p.name)
         setHtml(p.html)
         setOpen(true)
-        try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
         // fetch title if id-like
         try {
           const m = String(p.name ?? '').match(/#(\w+)$/)
@@ -76,7 +76,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
     setHtml(p.html)
     setOpen(true)
     // notify listeners with panel payload (useful for map to recentre when infra opens)
-    try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
     // If the provided name contains an infra id like "#123" try to fetch the real name
     try {
       const m = String(p.name ?? '').match(/#(\w+)$/)
@@ -106,7 +106,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
       pendingTimeoutRef.current = null
     }
     setOpen(false)
-    try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:close')) } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close')) } catch (e) {}
   }, [])
 
   const togglePanel = React.useCallback((p: LeftPanelPayload) => {
@@ -118,7 +118,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
         pendingTimeoutRef.current = null
       }
       setOpen(false)
-      try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:close')) } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close')) } catch (e) {}
       return
     }
 
@@ -129,14 +129,14 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
         pendingTimeoutRef.current = null
       }
       setOpen(false)
-      try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:close')) } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close')) } catch (e) {}
       pendingTimeoutRef.current = window.setTimeout(() => {
         pendingTimeoutRef.current = null
         setContentKey(p.name)
         setTitle(p.title ?? p.name)
         setHtml(p.html)
         setOpen(true)
-        try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
         // fetch title if id-like
         try {
           const m = String(p.name ?? '').match(/#(\w+)$/)
@@ -163,7 +163,7 @@ export function LeftPanelProvider({ children }: { children: React.ReactNode }) {
     setTitle(p.title ?? p.name)
     setHtml(p.html)
     setOpen(true)
-    try { window.dispatchEvent(new CustomEvent('infraster:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent('geoshare:leftPanel:openDetail', { detail: { name: p.name } })) } catch (e) {}
     try {
       const m = String(p.name ?? '').match(/#(\w+)$/)
       if (m && m[1]) {

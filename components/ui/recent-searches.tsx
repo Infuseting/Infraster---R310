@@ -40,7 +40,7 @@ export default function RecentSearches({vertical  } : {vertical?: boolean}) {
                     if (openPanel) openPanel({ name: 'Recherche par filtres', title: 'Recherche par filtres', html: <FilterSearchPanel /> })
                   } catch (e) {}
                   window.setTimeout(() => {
-                    try { window.dispatchEvent(new CustomEvent('infraster:executeFilterSearch', { detail: s })) } catch (e) {}
+                    try { window.dispatchEvent(new CustomEvent('geoshare:executeFilterSearch', { detail: s })) } catch (e) {}
                   }, ANIM_MS)
                   return
                 }
@@ -66,13 +66,13 @@ export default function RecentSearches({vertical  } : {vertical?: boolean}) {
                     }
                   }
                   window.setTimeout(() => {
-                    try { window.dispatchEvent(new CustomEvent('infraster:executeFilterSearch', { detail })) } catch (e) {}
+                    try { window.dispatchEvent(new CustomEvent('geoshare:executeFilterSearch', { detail })) } catch (e) {}
                   }, ANIM_MS)
                   return
                 }
 
                 // otherwise emit a simple searchQuery event with the title
-                window.dispatchEvent(new CustomEvent('infraster:searchQuery', { detail: { q: s.title } }))
+                window.dispatchEvent(new CustomEvent('geoshare:searchQuery', { detail: { q: s.title } }))
               } catch (e) {
                 console.warn('failed to dispatch recent search event', e)
               }

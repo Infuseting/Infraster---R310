@@ -12,9 +12,9 @@ import InfraViewer from "./infra-viewer"
 
 export default function FilterSearchPanel() {
     React.useEffect(() => {
-        try { window.dispatchEvent(new CustomEvent('infraster:filter:open')) } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('geoshare:filter:open')) } catch (e) {}
         return () => {
-            try { window.dispatchEvent(new CustomEvent('infraster:filter:close')) } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent('geoshare:filter:close')) } catch (e) {}
         }
     }, [])
 
@@ -22,17 +22,17 @@ export default function FilterSearchPanel() {
     // other UI that the filter panel is closed when the left panel hides.
     React.useEffect(() => {
         function onLeftPanelClose() {
-            try { window.dispatchEvent(new CustomEvent('infraster:filter:close')) } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent('geoshare:filter:close')) } catch (e) {}
         }
         function onLeftPanelOpen() {
-            try { window.dispatchEvent(new CustomEvent('infraster:filter:open')) } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent('geoshare:filter:open')) } catch (e) {}
         }
 
-        window.addEventListener('infraster:leftPanel:close', onLeftPanelClose)
-        window.addEventListener('infraster:leftPanel:open', onLeftPanelOpen)
+        window.addEventListener('geoshare:leftPanel:close', onLeftPanelClose)
+        window.addEventListener('geoshare:leftPanel:open', onLeftPanelOpen)
         return () => {
-            window.removeEventListener('infraster:leftPanel:close', onLeftPanelClose)
-            window.removeEventListener('infraster:leftPanel:open', onLeftPanelOpen)
+            window.removeEventListener('geoshare:leftPanel:close', onLeftPanelClose)
+            window.removeEventListener('geoshare:leftPanel:open', onLeftPanelOpen)
         }
     }, [])
 
@@ -75,7 +75,7 @@ export default function FilterSearchPanel() {
         // emit filter change events when selections, distance or dates change
         React.useEffect(() => {
             try {
-                window.dispatchEvent(new CustomEvent('infraster:filters:change', { detail: {
+                window.dispatchEvent(new CustomEvent('geoshare:filters:change', { detail: {
                     pieces: selectedPieces,
                     equipments: selectedEquips,
                         accessibilites: selectedAccess,
@@ -146,7 +146,7 @@ export default function FilterSearchPanel() {
                             {(items || []).length === 0 ? <div className="p-4">Aucun résultat</div> : null}
                             {(items || []).map((it: any) => (
                                 <button key={String(it.id)} className="w-full text-left p-2 hover:bg-gray-50 rounded" onClick={() => {
-                                    try { window.dispatchEvent(new CustomEvent('infraster:panTo', { detail: { lat: Number(it.lat), lng: Number(it.lon), zoom: 16, addMarker: true } })) } catch (e) {}
+                                    try { window.dispatchEvent(new CustomEvent('geoshare:panTo', { detail: { lat: Number(it.lat), lng: Number(it.lon), zoom: 16, addMarker: true } })) } catch (e) {}
                                     try { openPanel({ name: `Infrastructure #${it.id}`, title: it.name ?? `Infrastructure #${it.id}`, html: <InfraViewer infra={{ id: it.id, name: it.name, adresse: it.adresse, lat: it.lat, lon: it.lon }} /> }) } catch (e) {}
                                 }}>
                                     <div className="font-medium">{it.name}</div>
@@ -201,8 +201,8 @@ export default function FilterSearchPanel() {
                     performFilterSearch(f)
                 } catch (err) {}
             }
-            window.addEventListener('infraster:executeFilterSearch', onExec as EventListener)
-            return () => window.removeEventListener('infraster:executeFilterSearch', onExec as EventListener)
+            window.addEventListener('geoshare:executeFilterSearch', onExec as EventListener)
+            return () => window.removeEventListener('geoshare:executeFilterSearch', onExec as EventListener)
         }, [selectedPieces, selectedEquips, selectedAccess, distanceKm, dateFrom, dateTo, searchQ])
 
     return (

@@ -22,7 +22,7 @@ export default function SignetsViewer({ compact = false }: { compact?: boolean }
 		async function load() {
 			setLoading(true)
 			try {
-				const raw = localStorage.getItem("infraster:favorites")
+				const raw = localStorage.getItem("geoshare:favorites")
 				const favs: string[] = raw ? JSON.parse(raw) : []
 				// fetch details in parallel
 				const unique = Array.from(new Set(favs.map((v) => String(v))))
@@ -65,7 +65,7 @@ export default function SignetsViewer({ compact = false }: { compact?: boolean }
 		try {
 			if (it.lat != null && it.lon != null) {
 				try {
-					window.dispatchEvent(new CustomEvent("infraster:panTo", { detail: { lat: it.lat, lng: it.lon, zoom: 15, addMarker: true } }))
+					window.dispatchEvent(new CustomEvent("geoshare:panTo", { detail: { lat: it.lat, lng: it.lon, zoom: 15, addMarker: true } }))
 				} catch (e) {}
 			}
 

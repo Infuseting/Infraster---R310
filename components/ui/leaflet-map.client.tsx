@@ -72,8 +72,8 @@ export default function LeafletMap({ center = [51.505, -0.09], zoom = 13, minZoo
   // Animated selected marker: create a divIcon and inject CSS for bounce
   const selectedDivIcon = React.useMemo(() => {
     return L.divIcon({
-      html: `<img class="infraster-selected-marker" src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" />`,
-      className: "infraster-selected-divicon",
+      html: `<img class="geoshare-selected-marker" src="https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png" />`,
+      className: "geoshare-selected-divicon",
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       popupAnchor: [1, -34],
@@ -82,13 +82,13 @@ export default function LeafletMap({ center = [51.505, -0.09], zoom = 13, minZoo
 
   React.useEffect(() => {
     if (typeof document === 'undefined') return
-    if (document.getElementById('infraster-selected-marker-style')) return
+    if (document.getElementById('geoshare-selected-marker-style')) return
     const s = document.createElement('style')
-    s.id = 'infraster-selected-marker-style'
+    s.id = 'geoshare-selected-marker-style'
     s.innerHTML = `
-@keyframes infraster-bounce { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
-.infraster-selected-marker { animation: infraster-bounce 1s infinite; display: block; transform-origin: center bottom; }
-.infraster-selected-divicon { background: transparent; }
+@keyframes geoshare-bounce { 0% { transform: translateY(0); } 50% { transform: translateY(-12px); } 100% { transform: translateY(0); } }
+.geoshare-selected-marker { animation: geoshare-bounce 1s infinite; display: block; transform-origin: center bottom; }
+.geoshare-selected-divicon { background: transparent; }
 `
     document.head.appendChild(s)
   }, [])
@@ -282,8 +282,8 @@ export default function LeafletMap({ center = [51.505, -0.09], zoom = 13, minZoo
       }
     }
 
-    window.addEventListener("infraster:panTo", onPanTo as EventListener)
-    return () => window.removeEventListener("infraster:panTo", onPanTo as EventListener)
+    window.addEventListener("geoshare:panTo", onPanTo as EventListener)
+    return () => window.removeEventListener("geoshare:panTo", onPanTo as EventListener)
   }, [mapRef])
 
   // Fetch infrastructures within current map bounds (max 100). Debounced on move/zoom.
@@ -458,8 +458,8 @@ export default function LeafletMap({ center = [51.505, -0.09], zoom = 13, minZoo
         })()
       } catch (e) {}
     }
-    window.addEventListener('infraster:leftPanel:openDetail', onLeftPanelOpenDetail as EventListener)
-    return () => window.removeEventListener('infraster:leftPanel:openDetail', onLeftPanelOpenDetail as EventListener)
+    window.addEventListener('geoshare:leftPanel:openDetail', onLeftPanelOpenDetail as EventListener)
+    return () => window.removeEventListener('geoshare:leftPanel:openDetail', onLeftPanelOpenDetail as EventListener)
   }, [mapInstance])
 
   // If there was a pending infra id while mapInstance wasn't ready, apply it now
@@ -496,8 +496,8 @@ export default function LeafletMap({ center = [51.505, -0.09], zoom = 13, minZoo
       try { setSelectedInfraId(null) } catch (e) {}
       try { setSelectedInfra(null) } catch (e) {}
     }
-    window.addEventListener('infraster:leftPanel:close', onLeftPanelClose)
-    return () => window.removeEventListener('infraster:leftPanel:close', onLeftPanelClose)
+    window.addEventListener('geoshare:leftPanel:close', onLeftPanelClose)
+    return () => window.removeEventListener('geoshare:leftPanel:close', onLeftPanelClose)
   }, [])
 
   return (

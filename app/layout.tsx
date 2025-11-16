@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Infraster",
+  title: "geoshare",
   description: "App to see infrastructure and get informations about natural disease.",
 };
 

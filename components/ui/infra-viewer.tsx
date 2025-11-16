@@ -74,7 +74,7 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
                 setIsFav(false)
                 return
             }
-            const raw = localStorage.getItem('infraster:favorites')
+            const raw = localStorage.getItem('geoshare:favorites')
             const arr = raw ? JSON.parse(raw) : []
             const set = new Set(arr.map((v: any) => String(v)))
             setIsFav(set.has(String(infra.id)))
@@ -86,7 +86,7 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
     function toggleFavorite() {
         if (!infra?.id) return
         try {
-            const key = 'infraster:favorites'
+            const key = 'geoshare:favorites'
             const raw = localStorage.getItem(key)
             const arr = raw ? JSON.parse(raw) : []
             const set = new Set(arr.map((v: any) => String(v)))

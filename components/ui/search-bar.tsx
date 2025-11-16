@@ -233,7 +233,7 @@ export default function SearchBar() {
     const lat = parseFloat(item.lat)
     const lng = parseFloat(item.lon)
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      window.dispatchEvent(new CustomEvent('infraster:panTo', { detail: { lat, lng, zoom: 16, addMarker: true } }))
+      window.dispatchEvent(new CustomEvent('geoshare:panTo', { detail: { lat, lng, zoom: 16, addMarker: true } }))
 
       // Choose a sensible title/subtitle for history depending on source
       if (item.source === 'infra') {
@@ -255,12 +255,12 @@ export default function SearchBar() {
         // perform full search for this query
         performFullSearch(qv)
       } catch (err) {
-        console.warn('failed to handle infraster:searchQuery', err)
+        console.warn('failed to handle geoshare:searchQuery', err)
       }
     }
 
-    window.addEventListener('infraster:searchQuery', onRecentSearch as EventListener)
-    return () => window.removeEventListener('infraster:searchQuery', onRecentSearch as EventListener)
+    window.addEventListener('geoshare:searchQuery', onRecentSearch as EventListener)
+    return () => window.removeEventListener('geoshare:searchQuery', onRecentSearch as EventListener)
   }, [performFullSearch])
 
   // Keep local view in sync with LeftPanel context
@@ -277,16 +277,16 @@ export default function SearchBar() {
   React.useEffect(() => {
     const isOpen = focused || loadingResults || (searchResults && searchResults.length > 0)
     if (isOpen) {
-      window.dispatchEvent(new CustomEvent('infraster:search:open'))
+      window.dispatchEvent(new CustomEvent('geoshare:search:open'))
       // request left-panel to close when search opens (use context)
       try {
         closePanel()
       } catch (e) {
         // fallback to event if context isn't available
-        window.dispatchEvent(new CustomEvent('infraster:leftPanel:close'))
+        window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close'))
       }
     } else {
-      window.dispatchEvent(new CustomEvent('infraster:search:close'))
+      window.dispatchEvent(new CustomEvent('geoshare:search:close'))
     }
   }, [focused, loadingResults, searchResults.length])
 
@@ -302,11 +302,11 @@ export default function SearchBar() {
     function onFilterClose() {
       try { setFilterPanelOpen(false) } catch (e) {}
     }
-    window.addEventListener('infraster:filter:open', onFilterOpen)
-    window.addEventListener('infraster:filter:close', onFilterClose)
+    window.addEventListener('geoshare:filter:open', onFilterOpen)
+    window.addEventListener('geoshare:filter:close', onFilterClose)
     return () => {
-      window.removeEventListener('infraster:filter:open', onFilterOpen)
-      window.removeEventListener('infraster:filter:close', onFilterClose)
+      window.removeEventListener('geoshare:filter:open', onFilterOpen)
+      window.removeEventListener('geoshare:filter:close', onFilterClose)
     }
   }, [])
 
@@ -460,7 +460,7 @@ export default function SearchBar() {
                                 // write it into the input and perform a full search to show results.
                                 // If this saved history entry contains full filters, dispatch an event
                                 if (item && (item.filters || item.filter)) {
-                                  try { window.dispatchEvent(new CustomEvent('infraster:executeFilterSearch', { detail: item })) } catch (e) {}
+                                  try { window.dispatchEvent(new CustomEvent('geoshare:executeFilterSearch', { detail: item })) } catch (e) {}
                                   setQ('')
                                   setFocused(false)
                                   return

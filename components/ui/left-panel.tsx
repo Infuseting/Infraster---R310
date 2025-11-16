@@ -8,11 +8,11 @@ export default function LeftPanel({name, children}: {name?: string, children?: R
   // Notify search UI using window events for backward compatibility when panel opens/closes
   React.useEffect(() => {
     if (open) {
-      window.dispatchEvent(new CustomEvent('infraster:leftPanel:open'))
+      window.dispatchEvent(new CustomEvent('geoshare:leftPanel:open'))
       // also request search to close
-      window.dispatchEvent(new CustomEvent('infraster:search:close'))
+      window.dispatchEvent(new CustomEvent('geoshare:search:close'))
     } else {
-      window.dispatchEvent(new CustomEvent('infraster:leftPanel:close'))
+      window.dispatchEvent(new CustomEvent('geoshare:leftPanel:close'))
     }
   }, [open])
 
