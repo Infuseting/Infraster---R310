@@ -5,11 +5,15 @@ import L from "leaflet";
 import { useMap } from "react-leaflet";
 import { useEffect } from "react";
 
-function MapCenterUpdater({ center }: { center: [number, number] }) {
+function MapCenterUpdater({ center }: { center: [number, number] | null }) {
   const map = useMap();
 
   useEffect(() => {
-    map.flyTo(center, map.getZoom());
+    if (center) {
+      map.whenReady(() => {
+        map.flyTo(center, map.getZoom());
+      });
+    }
   }, [center, map]);
 
   return null;
@@ -35,8 +39,10 @@ const infraIcon = L.icon({
 
 export default function Carte({
   infrastructures,
+  selectedCenter,
 }: {
   infrastructures: Infrastructure[];
+  selectedCenter: [number, number] | null;
 }) {
   const defcenter: [number, number] = (() => {
     const first = infrastructures.find(
@@ -60,7 +66,7 @@ export default function Carte({
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          {defcenter && <MapCenterUpdater center={defcenter} />}
+          {defcenter && <MapCenterUpdater center={selectedCenter} />}
           {infrastructures
             .filter(
               (i) =>

@@ -90,6 +90,9 @@ const Badge: React.FC<{
 
 /* Dashboard Page */
 export default function DashboardPage(): JSX.Element {
+  const [selectedCenter, setSelectedCenter] = useState<[number, number] | null>(
+    null
+  );
   const [items, setItems] = useState<Infrastructure[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -287,7 +290,15 @@ export default function DashboardPage(): JSX.Element {
                 {pageItems.map((it) => (
                   <li
                     key={it.id}
-                    className="border border-[#eef2ff] rounded-lg p-3 flex gap-3 items-start"
+                    onClick={() => {
+                      if (
+                        typeof it.latitude === "number" &&
+                        typeof it.longitude === "number"
+                      ) {
+                        setSelectedCenter([it.latitude, it.longitude]);
+                      }
+                    }}
+                    className="cursor-pointer border border-[#eef2ff] rounded-lg p-3 flex gap-3 items-start hover:bg-slate-50 transition"
                   >
                     <div className="w-[10px]">
                       <div
@@ -422,8 +433,7 @@ export default function DashboardPage(): JSX.Element {
               </div>
             </div>
           </div>
-
-          <Carte infrastructures={items} />
+          <Carte infrastructures={items} selectedCenter={selectedCenter} />{" "}
         </aside>
       </main>
 
