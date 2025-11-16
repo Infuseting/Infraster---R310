@@ -315,12 +315,16 @@ export default function SearchBar() {
     ? (leftPanelOpenCtx ? 'left-[calc(12rem+min(240px,56vw))] ' : 'left-16')
     : (leftPanelOpenCtx ? 'top-4 left-[calc(12rem+min(240px,56vw))]' : 'top-4 left-24')
 
-  // hide entirely when filter panel is open
-  if (filterPanelOpen) return null
+  // Instead of unmounting when filters are open, animate the search bar off-screen
+  // so we can smoothly transition its disappearance. When hidden, slide left
+  // over 1s. For normal positional moves (left/top changes), use 0.5s.
+  const hideClass = filterPanelOpen
+    ? '-translate-x-full opacity-0 pointer-events-none duration-[200ms]'
+    : 'translate-x-0 opacity-100 pointer-events-auto duration-500'
 
   return (
     <div
-      className={`fixed ${positionClass} z-9998`}
+      className={`fixed ${positionClass} z-9998 transform transition-all ease-out ${hideClass}`}
       // allow the container to receive focus/blur events from its children
       tabIndex={-1}
       onFocus={() => setFocused(true)}

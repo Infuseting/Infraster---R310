@@ -18,6 +18,24 @@ export default function FilterSearchPanel() {
         }
     }, [])
 
+    // If the left panel is only hidden (not unmounted), ensure we still notify
+    // other UI that the filter panel is closed when the left panel hides.
+    React.useEffect(() => {
+        function onLeftPanelClose() {
+            try { window.dispatchEvent(new CustomEvent('infraster:filter:close')) } catch (e) {}
+        }
+        function onLeftPanelOpen() {
+            try { window.dispatchEvent(new CustomEvent('infraster:filter:open')) } catch (e) {}
+        }
+
+        window.addEventListener('infraster:leftPanel:close', onLeftPanelClose)
+        window.addEventListener('infraster:leftPanel:open', onLeftPanelOpen)
+        return () => {
+            window.removeEventListener('infraster:leftPanel:close', onLeftPanelClose)
+            window.removeEventListener('infraster:leftPanel:open', onLeftPanelOpen)
+        }
+    }, [])
+
         const [piecesOptions, setPiecesOptions] = React.useState<string[]>([])
         const [equipOptions, setEquipOptions] = React.useState<string[]>([])
         const [accessOptions, setAccessOptions] = React.useState<string[]>([])
