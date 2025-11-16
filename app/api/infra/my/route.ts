@@ -108,6 +108,8 @@ GROUP BY
   i.informations,
   c.name
 ORDER BY i.name
+
+
     `,
       [userId]
     );

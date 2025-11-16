@@ -3,23 +3,13 @@ import { useState } from "react";
 import { Badge } from "../app/dashboard/page"; // adapte selon ton projet
 import { formatDate } from "../app/dashboard/page"; // adapte selon ton projet
 
+import type { Infrastructure } from "../app/dashboard/page"; // adapte selon ton projet
 type Props = {
-  infra: {
-    id: string;
-    name: string;
-    type: string;
-    address?: string; // ← ici on rend address optionnel
-    status: string;
-    description?: string;
-    latitude?: number;
-    longitude?: number;
-    createdAt: string;
-    piece?: string;
-    accessibility?: string;
-  };
+  infra: Infrastructure;
   onSelect?: (center: [number, number]) => void;
   isOpen?: boolean;
   onToggle?: () => void;
+  setEditingInfra: (infra: Infrastructure) => void;
 };
 
 export default function AccordeonInfra({
@@ -27,6 +17,7 @@ export default function AccordeonInfra({
   onSelect,
   isOpen,
   onToggle,
+  setEditingInfra,
 }: Props) {
   const handleClick = () => {
     if (
@@ -88,11 +79,15 @@ export default function AccordeonInfra({
               {infra.latitude}, {infra.longitude}
             </p>
           </div>
+          <div className="flex flex-col sm:flex-row sm:gap-2">
+            <p className="font-semibold text-slate-800">Adresse :</p>
+            <p className="text-slate-600">
+              {infra.address || "Aucune adresse fournie."}
+            </p>
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:gap-2">
-            <p className="font-semibold text-slate-800">
-              Salle(s) spéciale(s) :
-            </p>
+            <p className="font-semibold text-slate-800">Type(s) de pièce :</p>
             <p className="text-slate-600">{infra.piece || "Aucune"}</p>
           </div>
 
@@ -104,11 +99,20 @@ export default function AccordeonInfra({
           </div>
 
           <div className="flex flex-col sm:flex-row sm:gap-2">
-            <p className="font-semibold text-slate-800">Type d’équipements :</p>
+            <p className="font-semibold text-slate-800">Types d’équipement :</p>
             <p className="text-slate-600">
               {infra.type || "Aucune information"}
             </p>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setEditingInfra(infra);
+            }}
+            className="text-sm text-[#e30613] hover:underline"
+          >
+            Modifier
+          </button>
         </div>
       )}
     </li>

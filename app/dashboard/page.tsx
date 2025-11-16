@@ -3,6 +3,8 @@
 import React, { JSX, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import AccordeonInfra from "../../components/accordeonInfra";
+import InfraEdit from "../../components/ui/infraEdit";
+import InfraAddModal from "@/components/ui/infraAddModal";
 
 const Carte = dynamic(() => import("../../components/ui/dashboarCarte"), {
   ssr: false,
@@ -28,6 +30,8 @@ export type Infrastructure = {
   name: string;
   type: InfrastructureType;
   address?: string;
+  city?: string;
+  postalCode?: string;
   status: "Ouvert" | "Fermé" | "Plein";
   createdAt: string;
   latitude?: number;
@@ -93,6 +97,18 @@ export const Badge: React.FC<{
 
 /* Dashboard Page */
 export default function DashboardPage(): JSX.Element {
+  const [editingInfra, setEditingInfra] = useState<Infrastructure | null>(null);
+  const [infrastructures, setInfrastructures] = useState<Infrastructure[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  const handleAddInfra = (newInfra: Infrastructure) => {
+    setItems((prev) => [newInfra, ...prev]); // ou [...prev, newInfra] selon l’ordre souhaité
+    setPage(1); // pour revenir à la première page et voir l’ajout
+  };
+
+  const handleSave = (updated: Infrastructure) => {
+    alert(`Infrastructure mise à jour : `);
+  };
   const [selectedCenter, setSelectedCenter] = useState<[number, number] | null>(
     null
   );
@@ -199,7 +215,7 @@ export default function DashboardPage(): JSX.Element {
   return (
     <div className="p-5 font-sans max-w-[1100px] mx-auto">
       <header className="flex flex-col md:flex-row items-center justify-between gap-3">
-        <div className=" flex justify-start self-start">
+        <div className=" flex  self-start md:self-center gap-2">
           {" "}
           <button
             onClick={() => {
@@ -223,7 +239,7 @@ export default function DashboardPage(): JSX.Element {
 
         <div className="flex gap-2">
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => setShowAddModal(true)}
             className="inline-flex items-center gap-2 px-3.5 py-2 rounded-md border border-gray-300 bg-gray-100 text-sm text-gray-800 font-semibold hover:bg-gray-200 "
           >
             <Plus className="w-4 h-4" />
@@ -295,6 +311,7 @@ export default function DashboardPage(): JSX.Element {
                   <AccordeonInfra
                     key={it.id}
                     infra={it}
+                    setEditingInfra={setEditingInfra}
                     isOpen={selectedInfraId === it.id}
                     onToggle={() =>
                       setSelectedInfraId((prev) =>
@@ -391,6 +408,20 @@ export default function DashboardPage(): JSX.Element {
           <Carte infrastructures={items} selectedCenter={selectedCenter} />{" "}
         </aside>
       </main>
+
+      {editingInfra && (
+        <InfraEdit
+          infra={editingInfra}
+          onClose={() => setEditingInfra(null)}
+          // onSave={handleSave}
+        />
+      )}
+      {showAddModal && (
+        <InfraAddModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddInfra}
+        />
+      )}
 
       {/* Modal Form */}
       {showForm && (
