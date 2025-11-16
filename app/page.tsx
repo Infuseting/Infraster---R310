@@ -1,6 +1,26 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 export default function Home() {
+  // Référence pour cibler la section à animer
+  const ref = useRef(null);
+  
+  // useScroll track la progression du scroll sur l'élément référencé
+  // scrollYProgress retourne une valeur entre 0 et 1
+  const { scrollYProgress } = useScroll({
+    target: ref, // L'élément à tracker
+    offset: ["start 0.5", "start 0.10"], 
+    // "start 0.5" : animation commence quand le haut de la section atteint 50% du viewport
+    // "start 0.10" : animation se termine quand le haut de la section atteint 10% du viewport
+    // Plus ces valeurs sont éloignées, plus l'animation est lente
+  });
+
+  // Division du texte en mots individuels pour pouvoir les animer séparément
+  const words = "Geoshare rassemble en un seul endroit toutes les infrastructures sportives de Normandie. Que vous soyez un sportif amateur, une association ou une collectivité, accédez facilement aux informations dont vous avez besoin pour dynamiser le sport dans votre région.".split(" ");
+
   return (
     <>
       <header className="py-4 fixed w-full top-0 z-50 bg-gradient-to-b from-white to-transparent">
@@ -51,7 +71,7 @@ export default function Home() {
       </header>
 
       <main className="pt-28 min-h-screen bg-gradient-to-b from-red-50 via-white to-gray-50">
-        {/* Hero Section */}
+        {/* Banner Section */}
         <div className="container max-w-6xl mx-auto px-4 text-center py-20">
           <h1 className="text-5xl md:text-6xl font-bold text-[#D2232A] mb-6">
             Recensez et gérez les infrastructures sportives de Normandie
@@ -66,12 +86,51 @@ export default function Home() {
               </button>
             </Link>
             <Link href="/map">
-            <button className="rounded-full px-8 py-3 text-base font-medium text-gray-700 border-2 border-gray-300 hover:border-[#D2232A] hover:text-[#D2232A] transition-all">
-              Voir la carte
-            </button>
+              <button className="rounded-full px-8 py-3 text-base font-medium text-gray-700 border-2 border-gray-300 hover:border-[#D2232A] hover:text-[#D2232A] transition-all">
+                Voir la carte
+              </button>
             </Link>
           </div>
         </div>
+
+        {/* Section d'accroche avec reveal au scroll */}
+        {/* ref={ref} : permet à useScroll de tracker cette section */}
+        <section ref={ref} className="py-32 overflow-hidden">
+          <div className="container max-w-4xl mx-auto px-4">
+            <p className="text-2xl md:text-3xl text-center leading-relaxed font-light">
+              {/* Boucle sur chaque mot du texte */}
+              {words.map((word, i) => {
+                // Calcul du moment où ce mot spécifique doit commencer à apparaître
+                // Ex: mot 10 sur 50 mots total = 10/50 = 0.2 (20% de la progression du scroll)
+                const start = i / words.length;
+                
+                // Calcul du moment où ce mot doit finir d'apparaître
+                // Ex: 0.2 + (1/50) = 0.22 (22% de la progression)
+                const end = start + 1 / words.length;
+                
+                // useTransform transforme scrollYProgress en opacité
+                // Quand scrollYProgress est entre start et end, l'opacité passe de 0.2 à 1
+                // Ex: scrollYProgress = 0.21 (entre 0.2 et 0.22) → opacité = ~0.6
+                const opacity = useTransform(scrollYProgress, [start, end], [0.2, 1]);
+
+                // Détermine si le mot doit être mis en évidence (rouge et gras)
+                const isHighlight = word === "Geoshare" || word === "dynamiser";
+
+                return (
+                  // motion.span : composant animé de framer-motion
+                  // style={{ opacity }} : applique l'opacité calculée dynamiquement
+                  <motion.span
+                    key={i} // Clé unique pour React
+                    style={{ opacity }} // Opacité qui varie avec le scroll
+                    className={`inline-block mr-2 ${isHighlight ? 'text-[#D2232A] font-semibold' : 'text-gray-700'}`}
+                  >
+                    {word}
+                  </motion.span>
+                );
+              })}
+            </p>
+          </div>
+        </section>
 
         {/* Section Comment ça marche */}
         <section id="fonctionnalites" className="py-20 bg-white">
