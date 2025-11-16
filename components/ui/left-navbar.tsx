@@ -8,10 +8,13 @@ import {
   Menu as MenuIcon,
   ScanSearch,
   Book,
+  SearchCheck,
 } from "lucide-react";
 import RecentSearches from "./recent-searches";
 import { useLeftPanel } from "./left-panel-context";
 import SignetsViewer from "./signets-viewer";
+import FilterSearchPanel from "./filter-search-panel";
+import UserMenu from "./user-menu";
 
 export default function LeftNavbar() {
   const { togglePanel } = useLeftPanel();
@@ -38,7 +41,8 @@ export default function LeftNavbar() {
   const items = [
     { key: "menu", label: "Menu", icon: MenuIcon },
     { key: "bookmarks", label: "Signets", icon: Bookmark },
-    { key: "search", label: "Recherche", icon: ScanSearch },
+    { key: "search", label: "Anciennes Recherches", icon: ScanSearch },
+    { key: "filters", label: "Recherche par filtres", icon: SearchCheck },
     {
       key: "manager",
       label: "Gestionnaire",
@@ -79,9 +83,17 @@ export default function LeftNavbar() {
                         title: "Signets",
                         html: <SignetsViewer />,
                       })
-                    } else if (it.href) {
-                      router.push(it.href);
+                    } else if (it.key === 'filters') {
+                      togglePanel({
+                        name: "Recherche par filtres",
+                        title: "Recherche par filtres",
+                        html: <FilterSearchPanel />,
+                      });
                     }
+                    
+                    else if (it.href) {
+                      router.push(it.href);
+                    } 
                   } catch (e) {
                     console.warn("failed to toggle leftPanel", e);
                   }
@@ -100,6 +112,8 @@ export default function LeftNavbar() {
         <RecentSearches vertical={true} />
 
         <div className="flex-1" />
+
+        <UserMenu />
       </div>
     </aside>
   );

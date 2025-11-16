@@ -8,6 +8,37 @@ import type { NextRequest } from "next/server"
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  const tokenFromCookie = req.cookies.get("access_token")?.value
+
+  // If root is requested, let unauthenticated users see it, but
+  // redirect authenticated users to `/map`.
+  if (pathname === "/") {
+    if (!tokenFromCookie) {
+      return NextResponse.next()
+    }
+
+    try {
+      const origin = req.nextUrl.origin
+      const res = await fetch(`${origin}/api/auth/verify`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${tokenFromCookie}`,
+        },
+      })
+
+      if (res.ok) {
+        const url = req.nextUrl.clone()
+        url.pathname = "/map"
+        return NextResponse.redirect(url)
+      }
+    } catch (e) {
+      // fallthrough to allow viewing `/` if verification fails
+    }
+
+    return NextResponse.next()
+  }
+
   // Skip public and API routes, and the login/register pages
   if (
     pathname.startsWith("/_next") ||

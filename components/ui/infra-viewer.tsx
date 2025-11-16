@@ -1,6 +1,6 @@
 "use client"
 
-import { Bookmark, BookmarkCheck, BookMarked, BookMarkedIcon, ChevronRight, Clock, Mail, MapPin, Route, Share2, Volleyball } from 'lucide-react'
+import { Bookmark, BookmarkCheck, BookMarked, BookMarkedIcon, ChevronRight, Clock, Mail, MapPin, Route, Share2, Volleyball, Check } from 'lucide-react'
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useToast, useToastDismiss } from './toast'
@@ -261,6 +261,18 @@ export default function InfraViewer({ infra }: { infra?: InfraSummary }) {
             </div>
             <div className='w-full h-0.5 border-t'></div>
 
+            <div className='flex flex-row flex-wrap px-4 justify-center space-y-4'>
+                {detail?.accessibilites && detail.accessibilites.length > 0 ? (
+                    detail.accessibilites.map((ac) => (
+                        <div key={String(ac.id ?? ac.name)} className='w-full space-x-2 flex flex-row items-center p-2 rounded-md '>
+                            <Check className='flex justify-center items-center min-w-7 min-h-7'/>
+                            <p className='text-sm '>{ac.name ?? 'Accessibilité'}</p>
+                        </div>
+                    ))
+                ) : (
+                    null
+                )}
+            </div>
 
 
         </div>
