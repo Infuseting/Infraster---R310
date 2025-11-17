@@ -1,6 +1,5 @@
 "use client"
 
-import React from "react"
 import SignetsViewer from "@/components/ui/signets-viewer"
 
 export default function SignetsPage() {

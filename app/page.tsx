@@ -9,7 +9,9 @@ export default function Home() {
   const ref = useRef(null);
   
   // État pour gérer la catégorie sélectionnée
-  const [selectedCategory, setSelectedCategory] = useState("particulier");
+  const [selectedCategory, setSelectedCategory] = useState<
+    "particulier" | "association" | "entreprise"
+  >("particulier");
   
   // useScroll track la progression du scroll sur l'élément référencé
   // scrollYProgress retourne une valeur entre 0 et 1
