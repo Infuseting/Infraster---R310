@@ -4,6 +4,7 @@ import React from "react"
 import { Search, Calendar as CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import MultiComboBox from "./multi-combobox"
+import { Range } from 'react-range'
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
@@ -45,6 +46,10 @@ export default function FilterSearchPanel() {
         const [selectedEquips, setSelectedEquips] = React.useState<string[]>([])
         const [selectedAccess, setSelectedAccess] = React.useState<string[]>([])
         const [distanceKm, setDistanceKm] = React.useState<number>(0)
+        const [jaugeMin, setJaugeMin] = React.useState<number>(0)
+        const [jaugeMax, setJaugeMax] = React.useState<number>(0)
+        const [availableJaugeMax, setAvailableJaugeMax] = React.useState<number>(0)
+        const [jaugeRange, setJaugeRange] = React.useState<[number, number]>([0, 0])
         const [dateFrom, setDateFrom] = React.useState<Date | undefined>(undefined)
         const [dateTo, setDateTo] = React.useState<Date | undefined>(undefined)
         const [isSearching, setIsSearching] = React.useState<boolean>(false)
@@ -68,6 +73,12 @@ export default function FilterSearchPanel() {
                         setPiecesOptions(Array.isArray(data.pieces) ? data.pieces : [])
                         setEquipOptions(Array.isArray(data.equipements) ? data.equipements : [])
                         setAccessOptions(Array.isArray(data.accessibilites) ? data.accessibilites : [])
+                        // set jauge bounds
+                        const maxJ = Number.isFinite(Number(data.jaugeMax)) ? Number(data.jaugeMax) : 0
+                        setAvailableJaugeMax(maxJ)
+                        setJaugeMax(maxJ)
+                        setJaugeMin(0)
+                        setJaugeRange([0, maxJ])
                     })
                     .catch((e) => console.error('failed to load filters', e))
                 return () => { mounted = false }
@@ -81,11 +92,13 @@ export default function FilterSearchPanel() {
                     equipments: selectedEquips,
                         accessibilites: selectedAccess,
                     distanceKm,
+                    jaugeMin,
+                    jaugeMax,
                     dateFrom: dateFrom ? dateFrom.toISOString() : null,
                     dateTo: dateTo ? dateTo.toISOString() : null,
                 } }))
             } catch (e) {}
-        }, [selectedPieces, selectedEquips, selectedAccess, distanceKm, dateFrom, dateTo])
+        }, [selectedPieces, selectedEquips, selectedAccess, distanceKm, jaugeMin, jaugeMax, dateFrom, dateTo])
 
         const { openPanel } = useLeftPanel()
 
@@ -97,6 +110,8 @@ export default function FilterSearchPanel() {
                 equipments: selectedEquips,
                 accessibilites: selectedAccess,
                 distanceKm,
+                jaugeMin,
+                jaugeMax,
                 dateFrom: dateFrom ? dateFrom.toISOString() : null,
                 dateTo: dateTo ? dateTo.toISOString() : null,
                 limit: 100
@@ -119,12 +134,14 @@ export default function FilterSearchPanel() {
                 }
             }
 
-            const body: any = {
+                const body: any = {
                 q: payload.q || '',
                 pieces: Array.isArray(payload.pieces) ? payload.pieces : [],
                 equipments: Array.isArray(payload.equipments) ? payload.equipments : [],
                 accessibilites: Array.isArray(payload.accessibilites) ? payload.accessibilites : [],
                 distanceKm: Number(payload.distanceKm) || 0,
+                    jaugeMin: Number.isFinite(Number(payload.jaugeMin)) ? Number(payload.jaugeMin) : null,
+                    jaugeMax: Number.isFinite(Number(payload.jaugeMax)) ? Number(payload.jaugeMax) : null,
                 centerLat: centerLat,
                 centerLon: centerLon,
                 dateFrom: payload.dateFrom || null,
@@ -199,6 +216,8 @@ export default function FilterSearchPanel() {
                     setSelectedEquips(Array.isArray(f.equipments) ? f.equipments : [])
                     setSelectedAccess(Array.isArray(f.accessibilites) ? f.accessibilites : [])
                     setDistanceKm(Number(f.distanceKm) || 0)
+                    setJaugeMin(Number.isFinite(Number(f.jaugeMin)) ? Number(f.jaugeMin) : 0)
+                    setJaugeMax(Number.isFinite(Number(f.jaugeMax)) ? Number(f.jaugeMax) : availableJaugeMax)
                     setDateFrom(f.dateFrom ? new Date(f.dateFrom) : undefined)
                     setDateTo(f.dateTo ? new Date(f.dateTo) : undefined)
                     // run search with provided center if any
@@ -256,6 +275,93 @@ export default function FilterSearchPanel() {
                                     />
                                 </div>
                             </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-xs text-gray-600">Capacité (jauge)</label>
+                                    <div className="flex flex-col gap-2">
+                                        <div className="px-2">
+                                            {availableJaugeMax > 0 ? (
+                                                <Range
+                                                    values={jaugeRange}
+                                                    step={1}
+                                                    min={0}
+                                                    max={availableJaugeMax}
+                                                    onChange={(vals: number[]) => {
+                                                        const v0 = Math.max(0, Math.min(Number(availableJaugeMax), vals[0]))
+                                                        const v1 = Math.max(0, Math.min(Number(availableJaugeMax), vals[1]))
+                                                        setJaugeRange([v0, v1])
+                                                        setJaugeMin(v0)
+                                                        setJaugeMax(v1)
+                                                    }}
+                                                    renderTrack={({ props, children }: { props: any, children: any }) => {
+                                                        // avoid spreading `key` prop into DOM (React warns)
+                                                        const { key, ...rest } = props as any
+                                                        return (
+                                                            <div
+                                                                key={key}
+                                                                {...rest}
+                                                                className="w-full h-2 bg-gray-200 rounded-md relative"
+                                                                style={{ display: 'flex', alignItems: 'center' }}
+                                                            >
+                                                                <div className="absolute h-2 bg-indigo-500 rounded-md" style={{ left: `${(jaugeRange[0] / (availableJaugeMax || 1)) * 100}%`, right: `${100 - (jaugeRange[1] / (availableJaugeMax || 1)) * 100}%` }} />
+                                                                {children}
+                                                            </div>
+                                                        )
+                                                    }}
+                                                    renderThumb={({ props, index }: { props: any, index: number }) => {
+                                                        const { key, ...rest } = props as any
+                                                        return (
+                                                            <div
+                                                                key={key}
+                                                                {...rest}
+                                                                className="w-5 h-5 rounded-full bg-white border border-gray-400 shadow flex items-center justify-center"
+                                                                style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                                                            >
+                                                                <div className="text-xs text-gray-700">{jaugeRange[index]}</div>
+                                                            </div>
+                                                        )
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div className="w-full h-2 bg-gray-100 rounded-md" />
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="number"
+                                                aria-label="Jauge min"
+                                                value={jaugeMin}
+                                                onChange={(e) => {
+                                                    const v = Number(e.target.value)
+                                                    if (Number.isNaN(v)) return
+                                                    const nv = Math.max(0, Math.min(Number(availableJaugeMax || 0), v))
+                                                    const newMax = Math.max(nv, jaugeMax)
+                                                    setJaugeMin(nv)
+                                                    setJaugeRange([nv, newMax])
+                                                }}
+                                                className="w-24 p-1 border rounded text-sm"
+                                            />
+                                            <input
+                                                type="number"
+                                                aria-label="Jauge max"
+                                                value={jaugeMax}
+                                                onChange={(e) => {
+                                                    const v = Number(e.target.value)
+                                                    if (Number.isNaN(v)) return
+                                                    const nv = Math.max(0, Math.min(Number(availableJaugeMax || 0), v))
+                                                    const newMin = Math.min(jaugeMin, nv)
+                                                    setJaugeMax(nv)
+                                                    setJaugeRange([newMin, nv])
+                                                }}
+                                                className="w-24 p-1 border rounded text-sm"
+                                            />
+                                            <div className="text-xs text-gray-500 self-center">Max proposé: {availableJaugeMax}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <div>
+                                <label className="text-xs text-gray-600 mb-1 block">Types d'équipements</label>
+                                <MultiComboBox options={equipOptions} selected={selectedEquips} onChange={setSelectedEquips} placeholder="Sélectionner types d'équipements" />
+                            </div>
                             {userType === 'PARTICULIER' ? (
                                 null
                             ) : (
@@ -263,11 +369,6 @@ export default function FilterSearchPanel() {
                                     <div>
                                         <label className="text-xs text-gray-600 mb-1 block">Types de pièces</label>
                                         <MultiComboBox options={piecesOptions} selected={selectedPieces} onChange={setSelectedPieces} placeholder="Sélectionner types de pièces" />
-                                    </div>
-
-                                    <div>
-                                        <label className="text-xs text-gray-600 mb-1 block">Types d'équipements</label>
-                                        <MultiComboBox options={equipOptions} selected={selectedEquips} onChange={setSelectedEquips} placeholder="Sélectionner types d'équipements" />
                                     </div>
                                     <div>
                                         <label className="text-xs text-gray-600 mb-1 block">Accessibilités</label>

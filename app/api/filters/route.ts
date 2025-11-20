@@ -15,10 +15,14 @@ export async function GET() {
     const accessRows = await query('SELECT DISTINCT name FROM Accessibilite ORDER BY name')
     const accessibilites = (accessRows || []).map((r: any) => r.name).filter(Boolean)
 
-    return NextResponse.json({ pieces, equipements, accessibilites })
+    // maximum max_jauge across all infrastructures
+    const maxJaugeRows = await query('SELECT MAX(max_jauge) as max FROM Jauge')
+    const jaugeMax = (maxJaugeRows && maxJaugeRows[0] && maxJaugeRows[0].max) ? Number(maxJaugeRows[0].max) : 0
+
+    return NextResponse.json({ pieces, equipements, accessibilites, jaugeMax })
   } catch (err) {
     console.error('filters api error', err)
-    return NextResponse.json({ pieces: [], equipements: [], accessibilites: [] }, { status: 500 })
+    return NextResponse.json({ pieces: [], equipements: [], accessibilites: [], jaugeMax: 0 }, { status: 500 })
   }
 }
 

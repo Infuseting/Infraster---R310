@@ -45,6 +45,8 @@ export async function POST(request: Request) {
     const centerLon = typeof body.centerLon === 'number' ? body.centerLon : (body.centerLon ? Number(body.centerLon) : null)
     const dateFrom = body.dateFrom ? String(body.dateFrom) : null
     const dateTo = body.dateTo ? String(body.dateTo) : null
+    const jaugeMin = Number.isFinite(Number(body.jaugeMin)) ? Number(body.jaugeMin) : null
+    const jaugeMax = Number.isFinite(Number(body.jaugeMax)) ? Number(body.jaugeMax) : null
     const rawLimit = Number.isFinite(Number(body.limit)) ? Math.max(1, Math.min(100, Number(body.limit))) : 100
 
     // Build dynamic SQL
@@ -68,14 +70,27 @@ export async function POST(request: Request) {
     }
 
     if (equipments.length > 0) {
-      // fix: idInfrastructure column name
-      where.push(`EXISTS (SELECT 1 FROM has_Equipements he JOIN Equipements e ON he.idEquipements = e.idEquipements WHERE he.idInfrastructure = Infrastructure.idInfrastructure AND e.typeEquipements IN (${equipments.map(() => '?').join(',')}))`)
+      // has_Equipements table uses column name `idInfrastrcture` (typo in DB schema)
+      where.push(`EXISTS (SELECT 1 FROM has_Equipements he JOIN Equipements e ON he.idEquipements = e.idEquipements WHERE he.idInfrastrcture = Infrastructure.idInfrastructure AND e.typeEquipements IN (${equipments.map(() => '?').join(',')}))`)
       whereParams.push(...equipments)
     }
 
     if (accessibilites.length > 0) {
       where.push(`EXISTS (SELECT 1 FROM is_accessible ia JOIN Accessibilite a ON ia.idAccessibilite = a.idAccessibilite WHERE ia.idInfrastructure = Infrastructure.idInfrastructure AND a.name IN (${accessibilites.map(() => '?').join(',')}))`)
       whereParams.push(...accessibilites)
+    }
+    if (jaugeMin != null || jaugeMax != null) {
+      // ensure infrastructures have a max_jauge within the requested range
+      if (jaugeMin != null && jaugeMax != null) {
+        where.push(`EXISTS (SELECT 1 FROM Jauge j WHERE j.idInfrastructure = Infrastructure.idInfrastructure AND j.max_jauge >= ? AND j.max_jauge <= ?)`)
+        whereParams.push(jaugeMin, jaugeMax)
+      } else if (jaugeMin != null) {
+        where.push(`EXISTS (SELECT 1 FROM Jauge j WHERE j.idInfrastructure = Infrastructure.idInfrastructure AND j.max_jauge >= ?)`)
+        whereParams.push(jaugeMin)
+      } else if (jaugeMax != null) {
+        where.push(`EXISTS (SELECT 1 FROM Jauge j WHERE j.idInfrastructure = Infrastructure.idInfrastructure AND j.max_jauge <= ?)`)
+        whereParams.push(jaugeMax)
+      }
     }
     if (dateFrom || dateTo) {
       // Use a single calendar CTE computed once and derive an `avail` set of infrastructures

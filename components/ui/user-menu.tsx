@@ -47,7 +47,8 @@ export default function UserMenu({ name }: { name?: string }) {
         const maybeName = json?.name || json?.user?.name
         if (maybeName && maybeName.length > 0) {
           setInitial(maybeName.trim()[0].toUpperCase())
-          setUserType(json?.user?.type || null)
+          setUserType(json.type || null)
+          
         }
       } catch (e) {
         // ignore
